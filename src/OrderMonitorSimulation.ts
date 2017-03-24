@@ -5,15 +5,11 @@ import Order from './Order';
 import {MarketHours} from "./Order";
 import OrderMonitor from './OrderMonitor';
 var csv = require("fast-csv");
-var a: number = 0;
-var orderMonitor = new OrderMonitor(MarketHours.ALL);
+var orderMonitor = new OrderMonitor(MarketHours.MARKETS_OPEN, 60*5);
 
 csv
     .fromPath("./resources/orders.csv", {headers: true})
     .on('data', function(order) {
-        a++;
-        if (a == 69000)
-            console.log(orderMonitor.report);
         orderMonitor.pushOrder(order);
     })
     .on('end', function() {

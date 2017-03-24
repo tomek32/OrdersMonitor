@@ -15,13 +15,15 @@ export interface reportResource {
   numOrdersReprioritized: number;
   longestWaitingSec: number;
   longestWaitingPlusApprovedSec: number;
-  veryLongAwaytingOrders: Order[];
+  longestWaitingPlusApprovedOrder: Order;
+  missedAwaytingOrders: Order[];
 }
 
 
 export interface OrderMonitorReportInterface {
   report: {[key: string]: any};
   includeMarketHours: MarketHours;
+  missedWaitingOrderSec: number;
 
   printReport(): void;
   updateReportForPushOrder(order: Order): void;
@@ -32,13 +34,14 @@ export interface OrderMonitorReportInterface {
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
   includeMarketHours: MarketHours;
-
+  missedWaitingOrderSec: number;
 
   //////
   // Constructor
-  constructor(includeMarketHours?: MarketHours) {
+  constructor(includeMarketHours?: MarketHours, missedWaitingOrderSec?: number) {
     this.report = {};
     this.includeMarketHours = includeMarketHours;
+    this.missedWaitingOrderSec = missedWaitingOrderSec;
   }
 
   //////
@@ -59,6 +62,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       */
 
       // TODO: don't export this until we get locked status
+      delete formattedReport[key].numOrdersReprioritized;
       delete formattedReport[key].longestWaitingSec;
 
       // Convert to mm:ss format
@@ -81,11 +85,13 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         var currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
         var newTimeToApprove:number = (new Date(order.finalTimestamp).getTime() - new Date(order.initialTimestamp).getTime()) / 1000;
 
-        if (newTimeToApprove > currLongestApproved)
-          this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
+        if (newTimeToApprove > currLongestApproved) {
+            this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
+          this.report[date].longestWaitingPlusApprovedOrder = order;
+        }
 
-        if (currLongestApproved > 60*3)
-          this.report[date].veryLongAwaytingOrders.push(order);
+        if (newTimeToApprove >= this.missedWaitingOrderSec)
+          this.report[date].missedAwaytingOrders.push(order);
       }
     }
   }
@@ -210,7 +216,8 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       numOrdersReprioritized: 0,
       longestWaitingSec: 0,
       longestWaitingPlusApprovedSec: 0,
-      veryLongAwaytingOrders: []
+        longestWaitingPlusApprovedOrder: null,
+      missedAwaytingOrders: []
     };
   }
 
@@ -262,6 +269,12 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         if (this.report[key].longestWaitingPlusApprovedSec > this.report['totals'].longestWaitingPlusApprovedSec) {
           this.report['totals'].longestWaitingPlusApprovedSec = this.report[key].longestWaitingPlusApprovedSec;
         }
+
+        for (var order of this.report[key].missedAwaytingOrders)
+          this.report['totals'].missedAwaytingOrders.push(order);
+        delete this.report[key].missedAwaytingOrders;
+
+        delete  this.report['totals'].longestWaitingPlusApprovedOrder;
       }
     }
   }

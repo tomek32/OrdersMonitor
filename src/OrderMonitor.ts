@@ -31,10 +31,10 @@ export default class OrderMonitor implements OrderMonitorInterface {
 
   //////
   // Constructor
-  constructor(includeMarketHours?: MarketHours, priorityWaitSecs?: number, prioritizationAlgorith?: any) {
+  constructor(includeMarketHours?: MarketHours, missedWaitingOrderSec?: number, priorityWaitSecs?: number, prioritizationAlgorith?: any) {
     // this.orderQueue = new Heap();
     this.orderQueue = new FastPriorityQueue(prioritizationAlgorith);
-    this.report = new OrderMonitorReport(includeMarketHours);
+    this.report = new OrderMonitorReport(includeMarketHours, missedWaitingOrderSec);
     this.priorityWaitSecs = priorityWaitSecs;
   }
 
