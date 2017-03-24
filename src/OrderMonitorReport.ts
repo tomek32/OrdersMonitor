@@ -15,7 +15,7 @@ export interface reportResource {
   numOrdersReprioritized: number;
   longestWaitingSec: number;
   longestWaitingPlusApprovedSec: number;
-  longestWaitingPlusApprovedOrder: Order;
+  veryLongAwaytingOrders: Order[];
 }
 
 
@@ -58,8 +58,12 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       formattedReport[key].numOrdersByStrategy.MLO /= 2;
       */
 
+      // TODO: don't export this until we get locked status
+      delete formattedReport[key].longestWaitingSec;
+
       // Convert to mm:ss format
-      formattedReport[key].longestWaitingPlusApprovedSec = ('0' + d.getHours()).slice(-2) + 'h:' + ('0' + d.getMinutes()).slice(-2) + 'm:' + ('0' + d.getSeconds()).slice(-2) + 's';
+      delete formattedReport[key].longestWaitingPlusApprovedSec;
+      formattedReport[key].longestWaitingPlusApproved = ('0' + d.getHours()).slice(-2) + 'h:' + ('0' + d.getMinutes()).slice(-2) + 'm:' + ('0' + d.getSeconds()).slice(-2) + 's';
     }
 
     console.log(formattedReport);
@@ -77,10 +81,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         var currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
         var newTimeToApprove:number = (new Date(order.finalTimestamp).getTime() - new Date(order.initialTimestamp).getTime()) / 1000;
 
-        if (newTimeToApprove > currLongestApproved)  {
+        if (newTimeToApprove > currLongestApproved)
           this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
-          this.report[date].longestWaitingPlusApprovedOrder = order;
-        }
+
+        if (currLongestApproved > 60*3)
+          this.report[date].veryLongAwaytingOrders.push(order);
       }
     }
   }
@@ -205,7 +210,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       numOrdersReprioritized: 0,
       longestWaitingSec: 0,
       longestWaitingPlusApprovedSec: 0,
-      longestWaitingPlusApprovedOrder: null
+      veryLongAwaytingOrders: []
     };
   }
 
@@ -256,7 +261,6 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
         if (this.report[key].longestWaitingPlusApprovedSec > this.report['totals'].longestWaitingPlusApprovedSec) {
           this.report['totals'].longestWaitingPlusApprovedSec = this.report[key].longestWaitingPlusApprovedSec;
-          this.report['totals'].longestWaitingPlusApprovedOrder = this.report[key].longestWaitingPlusApprovedOrder;
         }
       }
     }
