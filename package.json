@@ -1,0 +1,15 @@
+{
+  "name": "order-monitor",
+  "version": "0.3.0",
+  "description": "Simuluation of Order Monitor with a prioritized queue",
+  "main": "index.html",
+  "author": "Tom Hosiawa",
+  "license": "MIT",
+  "devDependencies": {
+    "fastpriorityqueue": "^0.2.3",
+    "fast-csv": "^2.4.0",
+    "require": "^2.4.20",
+    "typescript": "^2.2.1",
+    "@types/node": "^7.0.10"
+  }
+}
