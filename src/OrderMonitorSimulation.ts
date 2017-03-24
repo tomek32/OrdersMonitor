@@ -12,10 +12,11 @@ const fs = require('fs');
 
 var missedOrderWaitingSec: number = 60 * 5;
 var inputFile = './resources/orders.csv';
-var outputJSONFile = './scratch/order_report_report.json';
-var outputCSVFile = './scratch/missed_waiting_order.csv';
+var reportJSONFile = './scratch/order_report.json';
+var reportCSVFile = './scratch/order_report.csv';
+var missedOrdersCSVFile = './scratch/missed_waiting_order.csv';
 
-var orderMonitor = new OrderMonitor(MarketHours.MARKETS_OPEN, missedOrderWaitingSec);
+var orderMonitor = new OrderMonitor(MarketHours.ALL, missedOrderWaitingSec);
 csv
     .fromPath(inputFile, {headers: true})
     .on('data', function(order) {
@@ -25,10 +26,16 @@ csv
         while (orderMonitor.popOrder());
 
         var json : any = orderMonitor.getReport();
-        writeJsonFile(outputJSONFile, json).then(() => {});
+        writeJsonFile(reportJSONFile, json).then(() => {});
 
         var csv : any = json2csv({data: json.totals.missedAwaytingOrders});
-        fs.writeFile(outputCSVFile, csv, function(err) {
+        fs.writeFile(missedOrdersCSVFile, csv, function(err) {
+            console.log('file saved');
+        });
+
+        delete json.totals;
+        var csv : any = json2csv({data: json});
+        fs.writeFile(reportCSVFile, csv, function(err) {
             console.log('file saved');
         });
     });
