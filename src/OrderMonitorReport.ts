@@ -25,7 +25,7 @@ export interface OrderMonitorReportInterface {
   includeMarketHours: MarketHours;
   missedWaitingOrderSec: number;
 
-  printReport(): void;
+  getReport(): any;
   updateReportForPushOrder(order: Order): void;
   updateReportForPopOrder(order: Order): void;
 }
@@ -46,7 +46,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
   //////
   // Print the current report
-  printReport(): void {
+  getReport(): any {
     var formattedReport: {[key: string]: any} = this.report;
 
     this.updateOverallTotalsReport();
@@ -70,7 +70,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       formattedReport[key].longestWaitingPlusApproved = ('0' + d.getHours()).slice(-2) + 'h:' + ('0' + d.getMinutes()).slice(-2) + 'm:' + ('0' + d.getSeconds()).slice(-2) + 's';
     }
 
-    console.log(formattedReport);
+    return formattedReport;
   }
 
 

@@ -15,7 +15,7 @@ export interface OrderMonitorInterface {
 
   //TODO: fix compiler warnings on optional parameter
   //constructor(priorityWaitSecs?: number);
-  printReport(): void;
+  getReport(): any;
   pushOrder(order: any): void;
   popOrder(): void;
 }
@@ -40,8 +40,8 @@ export default class OrderMonitor implements OrderMonitorInterface {
 
   //////
   // Print report
-  printReport(): void {
-    this.report.printReport();
+  getReport(): any {
+    return this.report.getReport();
   }
 
 
