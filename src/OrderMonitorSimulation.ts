@@ -1,41 +1,34 @@
 /**
  * Created by Tom on 2017-03-18.
  */
-import Order from './Order';
 import {MarketHours} from "./Order";
+import Order from './Order';
 import OrderMonitor from './OrderMonitor';
 
-const csv = require("fast-csv");
-const writeJsonFile = require('write-json-file');
-const json2csv = require('json2csv');
+const fastCsv = require("fast-csv");
 const fs = require('fs');
+const json2csv = require('json2csv');
+const writeJsonFile = require('write-json-file');
 
-var missedOrderWaitingSec: number = 60 * 5;
-var inputFile = './resources/orders.csv';
-var outputJSONFile = './scratch/order_report_report.json';
-var outputCSVFile = './scratch/missed_waiting_order.csv';
+const inputOrdersFile = './resources/orders.csv';
+const orderReportJson = './scratch/order_report_report.json';
+const exceptionReportCsv = './scratch/missed_waiting_order.csv';
 
-var orderMonitor = new OrderMonitor(MarketHours.MARKETS_OPEN, missedOrderWaitingSec);
-csv
-    .fromPath(inputFile, {headers: true})
-    .on('data', function(order) {
-        orderMonitor.pushOrder(order);
-    })
-    .on('end', function() {
-        while (orderMonitor.popOrder());
+const orderExceptionMaxSecs: number = 60 * 5;
 
-        var json : any = orderMonitor.getReport();
-        writeJsonFile(outputJSONFile, json).then(() => {});
 
-        var csv : any = json2csv({data: json.totals.missedAwaytingOrders});
-        fs.writeFile(outputCSVFile, csv, function(err) {
-            console.log('file saved');
+var orderMonitor = new OrderMonitor(MarketHours.MARKETS_OPEN, orderExceptionMaxSecs);
+fastCsv
+        .fromPath(inputOrdersFile, {headers: true})
+        .on('data', function(order) {
+            orderMonitor.pushOrder(order);
+        })
+        .on('end', function() {
+            while (orderMonitor.popOrder()) {};
+            var json : any = orderMonitor.getReport();
+
+            writeJsonFile(orderReportJson, json).then(() => {});
+
+            var csv : any = json2csv({data: json.totals.orderExceptions});
+            fs.writeFile(exceptionReportCsv, csv, function(err) {});
         });
-    });
-
-/**
-// Comparision function for orderMonitor
-var f = function (a: any, b: any) {
-  return a.initialTimestamp < b.initialTimestamp;
-};
-}*/

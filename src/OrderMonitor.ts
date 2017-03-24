@@ -1,52 +1,54 @@
 /**
  * Created by Tom on 2017-03-18.
  */
-import Order from './Order';
 import {MarketHours} from "./Order";
+import Order from './Order';
 import OrderMonitorReport from './OrderMonitorReport';
-const FastPriorityQueue: any = require('fastpriorityqueue');
-//const heap: any = require('heap');
-//import a from 'heap';
 
+const FastPriorityQueue: any = require('fastpriorityqueue');
 
 export interface OrderMonitorInterface {
   orderQueue: any;
   report: OrderMonitorReport;
 
-  //TODO: fix compiler warnings on optional parameter
-  //constructor(priorityWaitSecs?: number);
   getReport(): any;
   pushOrder(order: any): void;
   popOrder(): void;
 }
 
 
-//////
-// OrderMonitor Class
 export default class OrderMonitor implements OrderMonitorInterface {
   orderQueue: any;
   report: OrderMonitorReport;
-  priorityWaitSecs: number;
+  otherChannelMaxWaitSec: number;
 
 
-  //////
-  // Constructor
-  constructor(includeMarketHours?: MarketHours, missedWaitingOrderSec?: number, priorityWaitSecs?: number, prioritizationAlgorith?: any) {
-    // this.orderQueue = new Heap();
-    this.orderQueue = new FastPriorityQueue(prioritizationAlgorith);
-    this.report = new OrderMonitorReport(includeMarketHours, missedWaitingOrderSec);
-    this.priorityWaitSecs = priorityWaitSecs;
+  /**
+   *
+   * @param includeMarketHours - default is to include all. set to restrict which orders are included
+   * @param orderExceptionMaxSecs - default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
+   * @param priorityWaitSecs - default is 30 sec. set max amount of time before switching to regular FIFO
+   */
+  constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: MarketHours, orderExceptionMaxSecs?: number) {
+    this.orderQueue = new FastPriorityQueue();
+    this.report = new OrderMonitorReport(includeMarketHours, orderExceptionMaxSecs);
+
+    // TODO: this value isn't being used yet
+    this.otherChannelMaxWaitSec = otherChannelMaxWaitSec;
   }
 
-  //////
-  // Print report
+  /**
+   * @returns {any} current report
+   */
   getReport(): any {
     return this.report.getReport();
   }
 
 
-  //////
-  // Push order onto queue
+  /**
+   * Pushes order onto queue
+   * @param order
+   */
   pushOrder(order: any): void {
     var newOrder : Order = new Order();
 
@@ -70,19 +72,19 @@ export default class OrderMonitor implements OrderMonitorInterface {
     newOrder.channel = channel.substring(i, channel.indexOf('/', i));
 
     this.orderQueue.add(newOrder);
-    this.report.updateReportForPushOrder(newOrder);
+    this.report.recordPushOrder(newOrder);
   }
 
-
-  //////
-  // Pops off the top order and logs to the report
-  // Return true if an order was removed, false if otherwise queue is empty
+  /**
+   * Pops the top order of the queue
+   * @returns {boolean} true if an order was removed, false if otherwise queue is empty
+   */
   popOrder(): boolean {
     var order: Order;
 
     order = this.orderQueue.peek();
     if (order) {
-        this.report.updateReportForPopOrder(order);
+        this.report.recordPopOrder(order);
         this.orderQueue.poll();
         return true;
     }

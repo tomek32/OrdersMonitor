@@ -4,7 +4,6 @@
 import Order from './Order';
 import {MarketHours} from "./Order";
 
-
 export interface reportResource {
   numOrders: number;
   numOrdersByChannel: {WEB: number, WBR: number, ATT: number, MBL: number, TMAX: number, TALK: number, TBL: number, UNKNOWN: number};
@@ -12,40 +11,45 @@ export interface reportResource {
   numOrdersByStrategy: {SPL: number, OCO: number, OTA: number, FTO: number, MLO: number};
   numOrdersByOrderType: {MARKET: number, LIMIT: number, STOP_MARKET: number, STOP_LIMIT: number, TRAILING_STOP_MARKET: number, TRAILING_STOP_LIMIT: number};
   numOrdersByCustom: {ATT_RMP1: number};
-  numOrdersReprioritized: number;
+
   longestWaitingSec: number;
   longestWaitingPlusApprovedSec: number;
   longestWaitingPlusApprovedOrder: Order;
-  missedAwaytingOrders: Order[];
-}
 
+  orderExceptions: Order[];
+}
 
 export interface OrderMonitorReportInterface {
   report: {[key: string]: any};
   includeMarketHours: MarketHours;
-  missedWaitingOrderSec: number;
+  orderExceptionMaxSecs: number;
 
   getReport(): any;
-  updateReportForPushOrder(order: Order): void;
-  updateReportForPopOrder(order: Order): void;
+  recordPushOrder(order: Order): void;
+  recordPopOrder(order: Order): void;
 }
 
 
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
   includeMarketHours: MarketHours;
-  missedWaitingOrderSec: number;
+  orderExceptionMaxSecs: number;
 
-  //////
-  // Constructor
-  constructor(includeMarketHours?: MarketHours, missedWaitingOrderSec?: number) {
+  /**
+   * Constructor
+   * @param includeMarketHours
+   * @param missedWaitingOrderSec
+   */
+  constructor(includeMarketHours: MarketHours = MarketHours.ALL,
+              orderExceptionMaxSecs: number = 60*10) {
     this.report = {};
     this.includeMarketHours = includeMarketHours;
-    this.missedWaitingOrderSec = missedWaitingOrderSec;
+    this.orderExceptionMaxSecs = orderExceptionMaxSecs;
   }
 
-  //////
-  // Print the current report
+  /**
+   * @returns {{[p: string]: any}} the report
+   */
   getReport(): any {
     var formattedReport: {[key: string]: any} = this.report;
 
@@ -73,10 +77,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     return formattedReport;
   }
 
-
-  //////
-  // Update report based on order being popped. Orders entered outside market hours are ineligible
-  updateReportForPopOrder(order: Order): void {
+  /**
+   * Add pop event onto report. Orders in WAITING status outside regular market hours are ineligible
+   * @param order
+   */
+  recordPopOrder(order: Order): void {
     if (order.getOrderMarketHoursType() == MarketHours.MARKETS_OPEN) {
       var date:string = order.getInitialDate();
 
@@ -90,16 +95,17 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
           this.report[date].longestWaitingPlusApprovedOrder = order;
         }
 
-        if (newTimeToApprove >= this.missedWaitingOrderSec)
-          this.report[date].missedAwaytingOrders.push(order);
+        if (newTimeToApprove >= this.orderExceptionMaxSecs)
+          this.report[date].orderExceptions.push(order);
       }
     }
   }
 
-
-  //////
-  // Update report based on new order
-  updateReportForPushOrder(order: Order): void {
+  /**
+   * Add push event ont report
+   * @param order
+   */
+  recordPushOrder(order: Order): void {
     if (this.includeMarketHours == MarketHours.ALL || this.includeMarketHours == order.getOrderMarketHoursType()) {
       var orderDate:string;
 
@@ -203,8 +209,10 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
   }
 
 
-  //////
-  // key: order date or total
+  /**
+   * Initialzie a report object
+   * @param key - string to indicate if report is for date (i.e. 03.17.2017) or  'totals'
+   */
   protected initializeReport(key: string): void {
     this.report[key] = {
       numOrders: 0,
@@ -213,16 +221,16 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       numOrdersByStrategy: {SPL: 0, OCO: 0, OTA: 0, FTO: 0, MLO: 0},
       numOrdersByOrderType: {MARKET: 0, LIMIT: 0, STOP_MARKET: 0, STOP_LIMIT: 0, TRAILING_STOP_MARKET: 0, TRAILING_STOP_LIMIT: 0},
       numOrdersByCustom: {ATT_RMP1: 0},
-      numOrdersReprioritized: 0,
       longestWaitingSec: 0,
       longestWaitingPlusApprovedSec: 0,
-        longestWaitingPlusApprovedOrder: null,
-      missedAwaytingOrders: []
+      longestWaitingPlusApprovedOrder: null,
+      orderExceptions: []
     };
   }
 
-  //////
-  // Calculates the overall total report
+  /**
+   * Calculates the overall total report
+   */
   protected updateOverallTotalsReport(): void {
     //TODO: add check to prevent consumer to pass total into the object
     this.initializeReport('totals');
@@ -261,7 +269,6 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report['totals'].numOrdersByOrderType.TRAILING_STOP_LIMIT += this.report[key].numOrdersByOrderType.TRAILING_STOP_LIMIT;
 
         this.report['totals'].numOrdersByCustom.ATT_RMP1 += this.report[key].numOrdersByCustom.ATT_RMP1;
-        this.report['totals'].numOrdersReprioritized += this.report[key].numOrdersReprioritized;
 
         if (this.report[key].longestWaitingSec > this.report['totals'].longestWaitingSec)
           this.report['totals'].longestWaitingSec = this.report[key].longestWaitingSec;
@@ -270,11 +277,12 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
           this.report['totals'].longestWaitingPlusApprovedSec = this.report[key].longestWaitingPlusApprovedSec;
         }
 
-        for (var order of this.report[key].missedAwaytingOrders)
-          this.report['totals'].missedAwaytingOrders.push(order);
-        delete this.report[key].missedAwaytingOrders;
+        this.report[key].orderExceptions.forEach(order => {
+          this.report['totals'].orderExceptions.push(order);
+        });
+        this.report[key].orderExceptions = null;
 
-        delete  this.report['totals'].longestWaitingPlusApprovedOrder;
+        this.report['totals'].longestWaitingPlusApprovedOrder = null;
       }
     }
   }

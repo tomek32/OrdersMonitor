@@ -78,16 +78,17 @@ export default class Order implements OrderInterface {
   channel: string;
 
 
-  //////
-  // Return date when it first went into waiting status
+  /**
+   * @returns {string} date when order went first into WAITING status
+   */
   getInitialDate(): string {
     var d: Date = new Date(this.initialTimestamp);
     return (('0' + (d.getMonth() + 1).toString()).slice(-2) + '.' + ('0' + d.getDate()).slice(-2) + '.' + d.getFullYear());
   }
 
-
-  //////
-  // Return time date when it first went into waiting status
+  /**
+   * @returns {MarketHours} if market hours were open or closed. Doesn't account for holidays
+   */
   getOrderMarketHoursType(): MarketHours {
     var d: Date = new Date(this.initialTimestamp);
 
@@ -100,6 +101,4 @@ export default class Order implements OrderInterface {
 
     return MarketHours.MARKETS_OPEN;
   }
-
-
 }
