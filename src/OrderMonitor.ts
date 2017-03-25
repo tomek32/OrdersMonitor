@@ -64,10 +64,7 @@ export default class OrderMonitor implements OrderMonitorInterface {
     newOrder.orderType = order['ORDER_TYPE_CD'];
     newOrder.durationType = order['DURATN_TYPE_CD'];
     newOrder.nextDayInd = order['NEXT_DAY_ORDER_IND'];
-
-    var channel: string = order['FTNOTE_TRAIL_2_TXT'];
-    var i: number = channel.indexOf('CH.');
-    newOrder.channel = channel.substring(i, channel.indexOf('/', i));
+    newOrder.setChannel(order['FTNOTE_TRAIL_2_TXT']);
 
     this.orderQueue.add(newOrder);
     this.report.recordPushOrder(newOrder);

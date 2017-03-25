@@ -90,13 +90,6 @@ export default class Order implements OrderInterface {
   }
 
   /**
-   * @returns {number} of seconds between the final and initial timestamp
-   */
-  getTimeDiff(): number {
-    return (new Date(this.nextStatusTimestamp).getTime() - new Date(this.waitingTimestamp).getTime()) / 1000
-  }
-
-  /**
    * @returns {MarketHours} if market hours were open or closed. Doesn't account for holidays
    */
   getOrderMarketHoursType(): MarketHours {
@@ -110,5 +103,21 @@ export default class Order implements OrderInterface {
       return MarketHours.MARKETS_CLOSED;
 
     return MarketHours.MARKETS_OPEN;
+  }
+
+  /**
+   * @returns {number} of seconds between the final and initial timestamp
+   */
+  getTimeDiff(): number {
+    return (new Date(this.nextStatusTimestamp).getTime() - new Date(this.waitingTimestamp).getTime()) / 1000
+  }
+
+  /**
+   * Set the channel from the trailer text
+   * @param {trailer2txt} has the channel in the format of CH.*
+   */
+  setChannel(trailer2txt: string): void {
+    var i: number = trailer2txt.indexOf('CH.');
+    this.channel = trailer2txt.substring(i, trailer2txt.indexOf('/', i));
   }
 }
