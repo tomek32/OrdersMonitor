@@ -57,8 +57,10 @@ export interface OrderInterface {
   channel: string;
 
   getInitialDate(): string;
-  getTimeDiff(): number;
   getOrderMarketHoursType(): MarketHours;
+  getTimeDiff(): number;
+  setChannel(trailer2txt: string): void;
+  setLockedTime(time: string): void;
 }
 
 
@@ -80,6 +82,28 @@ export default class Order implements OrderInterface {
   nextDayInd: boolean;
   channel: string;
 
+  /**
+   * Loads an order from orders db fields
+   * @param order
+   */
+  constructor(order: any) {
+    this.accountRRCode = order['ACCT_BOB_CD'];
+    this.orderNumber = order['ORDER_NUM'];
+    this.creationTimestamp = order['ORDER_ITEM_CREATION_TS'];
+    this.waitingTimestamp = order['EFFECTIVE_TS1'];
+    this.waitingStatus = order['ORDER_ITEM_STAT_CD1'];
+    this.nextStatusTimestamp = order['EFFECTIVE_TS2'];
+    this.nextStatus = order['ORDER_ITEM_STAT_CD2'];
+    this.lockedTimestamp = undefined;
+    this.strategyType = order['ORDER_STRTGY_CD'];
+    this.strategyPrice = order['ORDER_PRICE_PLAN_CD'];
+    this.securityType = order['SECRTY_TYPE_CD'];
+    this.actionType = order['ACTION_TYPE_CD'];
+    this.orderType = order['ORDER_TYPE_CD'];
+    this.durationType = order['DURATN_TYPE_CD'];
+    this.nextDayInd = order['NEXT_DAY_ORDER_IND'];
+    this.setChannel(order['FTNOTE_TRAIL_2_TXT']);
+  }
 
   /**
    * @returns {string} date when order went first into WAITING status
@@ -119,5 +143,13 @@ export default class Order implements OrderInterface {
   setChannel(trailer2txt: string): void {
     var i: number = trailer2txt.indexOf('CH.');
     this.channel = trailer2txt.substring(i, trailer2txt.indexOf('/', i));
+  }
+
+  /**
+   *
+   * @param order
+   */
+  setLockedTime(time: string): void {
+    this.lockedTimestamp = time;
   }
 }
