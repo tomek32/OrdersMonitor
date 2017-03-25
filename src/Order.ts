@@ -43,10 +43,10 @@ export interface OrderInterface {
   accountRRCode: string;
   orderNumber: string;
   creationTimestamp: string;
-  initialTimestamp: string;
-  initialStatus: StatusType;
-  finalTimestamp: string;
-  finalStatus: StatusType;
+  waitingTimestamp: string;
+  waitingStatus: StatusType;
+  nextStatusTimestamp: string;
+  nextStatus: string;
   strategyType: string;
   strategyPrice: StrategyPriceType;
   securityType: SecurityType;
@@ -56,6 +56,7 @@ export interface OrderInterface {
   channel: string;
 
   getInitialDate(): string;
+  getTimeDiff(): number;
   getOrderMarketHoursType(): MarketHours;
 }
 
@@ -64,10 +65,10 @@ export default class Order implements OrderInterface {
   accountRRCode: string;
   orderNumber: string;
   creationTimestamp: string;
-  initialTimestamp: string;
-  initialStatus: StatusType;
-  finalTimestamp: string;
-  finalStatus: StatusType;
+  waitingTimestamp: string;
+  waitingStatus: StatusType;
+  nextStatusTimestamp: string;
+  nextStatus: string;
   strategyType: string;
   strategyPrice: StrategyPriceType;
   securityType: SecurityType;
@@ -82,15 +83,22 @@ export default class Order implements OrderInterface {
    * @returns {string} date when order went first into WAITING status
    */
   getInitialDate(): string {
-    var d: Date = new Date(this.initialTimestamp);
+    var d: Date = new Date(this.waitingTimestamp);
     return (('0' + (d.getMonth() + 1).toString()).slice(-2) + '.' + ('0' + d.getDate()).slice(-2) + '.' + d.getFullYear());
+  }
+
+  /**
+   * @returns {number} of seconds between the final and initial timestamp
+   */
+  getTimeDiff(): number {
+    return (new Date(this.nextStatusTimestamp).getTime() - new Date(this.waitingTimestamp).getTime()) / 1000
   }
 
   /**
    * @returns {MarketHours} if market hours were open or closed. Doesn't account for holidays
    */
   getOrderMarketHoursType(): MarketHours {
-    var d: Date = new Date(this.initialTimestamp);
+    var d: Date = new Date(this.waitingTimestamp);
 
     if (d.getHours() < 9 || d.getHours() >= 16)
       return MarketHours.MARKETS_CLOSED;

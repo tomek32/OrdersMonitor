@@ -22,12 +22,11 @@ export default class OrderMonitor implements OrderMonitorInterface {
   report: OrderMonitorReport;
   otherChannelMaxWaitSec: number;
 
-
   /**
    *
    * @param includeMarketHours - default is to include all. set to restrict which orders are included
-   * @param orderExceptionMaxSecs - default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
-   * @param priorityWaitSecs - default is 30 sec. set max amount of time before switching to regular FIFO
+   * @param orderExceptionMaxSecs
+   * @param priorityWaitSecs
    */
   constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: MarketHours, orderExceptionMaxSecs?: number) {
     this.orderQueue = new FastPriorityQueue();
@@ -44,7 +43,6 @@ export default class OrderMonitor implements OrderMonitorInterface {
     return this.report.getReport();
   }
 
-
   /**
    * Pushes order onto queue
    * @param order
@@ -55,10 +53,10 @@ export default class OrderMonitor implements OrderMonitorInterface {
     newOrder.accountRRCode = order['ACCT_BOB_CD'];
     newOrder.orderNumber = order['ORDER_NUM'];
     newOrder.creationTimestamp = order['ORDER_ITEM_CREATION_TS'];
-    newOrder.initialTimestamp = order['EFFECTIVE_TS1'];
-    newOrder.initialStatus = order['ORDER_ITEM_STAT_CD1'];
-    newOrder.finalTimestamp = order['EFFECTIVE_TS2'];
-    newOrder.finalStatus = order['ORDER_ITEM_STAT_CD2'];
+    newOrder.waitingTimestamp = order['EFFECTIVE_TS1'];
+    newOrder.waitingStatus = order['ORDER_ITEM_STAT_CD1'];
+    newOrder.nextStatusTimestamp = order['EFFECTIVE_TS2'];
+    newOrder.nextStatus = order['ORDER_ITEM_STAT_CD2'];
     newOrder.strategyType = order['ORDER_STRTGY_CD'];
     newOrder.strategyPrice = order['ORDER_PRICE_PLAN_CD'];
     newOrder.securityType = order['SECRTY_TYPE_CD'];

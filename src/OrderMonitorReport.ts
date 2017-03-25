@@ -16,6 +16,7 @@ export interface reportResource {
   longestWaitingPlusApprovedSec: number;
   longestWaitingPlusApprovedOrder: Order;
 
+  numOrderExceptions: number;
   orderExceptions: Order[];
 }
 
@@ -37,8 +38,8 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
   /**
    * Constructor
-   * @param includeMarketHours
-   * @param orderExceptionMaxSecs
+   * @param includeMarketHours default is 30 sec. set max amount of time before switching to regular FIFO
+   * @param orderExceptionMaxSecs default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
    */
   constructor(includeMarketHours: MarketHours = MarketHours.ALL,
               orderExceptionMaxSecs: number = 60*10) {
@@ -55,24 +56,25 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
     this.updateOverallTotalsReport();
 
-    for (const key of Object.keys(formattedReport)) {
+    Object.keys(formattedReport).forEach(key => {
       var d:Date = new Date(formattedReport[key].longestWaitingPlusApprovedSec);
 
       /**TODO make this paramaterized
-      formattedReport[key].numOrdersByStrategy.OCO /= 2;
-      formattedReport[key].numOrdersByStrategy.OTA /= 2;
-      formattedReport[key].numOrdersByStrategy.FTO /= 3;
-      formattedReport[key].numOrdersByStrategy.MLO /= 2;
-      */
+       formattedReport[key].numOrdersByStrategy.OCO /= 2;
+       formattedReport[key].numOrdersByStrategy.OTA /= 2;
+       formattedReport[key].numOrdersByStrategy.FTO /= 3;
+       formattedReport[key].numOrdersByStrategy.MLO /= 2;
+       */
 
-      // TODO: don't export this until we get locked status
-      delete formattedReport[key].numOrdersReprioritized;
-      delete formattedReport[key].longestWaitingSec;
+      // TODO: don't return this until we get locked status
+      formattedReport[key].longestWaitingSec = undefined;
 
       // Convert to mm:ss format
-      delete formattedReport[key].longestWaitingPlusApprovedSec;
-      formattedReport[key].longestWaitingPlusApproved = ('0' + d.getHours()).slice(-2) + 'h:' + ('0' + d.getMinutes()).slice(-2) + 'm:' + ('0' + d.getSeconds()).slice(-2) + 's';
-    }
+      formattedReport[key].longestWaitingPlusApprovedSec = undefined;
+      formattedReport[key].longestWaitingPlusApproved = ('0' + d.getHours()).slice(-2) + 'h:'
+                                                      + ('0' + d.getMinutes()).slice(-2) + 'm:'
+                                                      + ('0' + d.getSeconds()).slice(-2) + 's';
+    });
 
     return formattedReport;
   }
@@ -82,22 +84,22 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param order
    */
   recordPopOrder(order: Order): void {
-    if (order.getOrderMarketHoursType() == MarketHours.MARKETS_OPEN) {
-      var date:string = order.getInitialDate();
+    if (order.getOrderMarketHoursType() != MarketHours.MARKETS_OPEN)
+      return;
 
-      // Longest waited time between 9:30am and 4pm
-      if (date in this.report) {
-        var currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
-        var newTimeToApprove:number = (new Date(order.finalTimestamp).getTime() - new Date(order.initialTimestamp).getTime()) / 1000;
+    var date: string = order.getInitialDate();
 
-        if (newTimeToApprove > currLongestApproved) {
-            this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
-          this.report[date].longestWaitingPlusApprovedOrder = order;
-        }
+    // Longest waited time between 9:30am and 4pm
+    if (date in this.report) {
+      var currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
+      var newTimeToApprove:number = order.getTimeDiff();
 
-        if (newTimeToApprove >= this.orderExceptionMaxSecs)
-          this.report[date].orderExceptions.push(order);
+      if (newTimeToApprove > currLongestApproved) {
+        this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
+        this.report[date].longestWaitingPlusApprovedOrder = order;
       }
+
+      this.recordOrderExceptions(order);
     }
   }
 
@@ -106,106 +108,105 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param order
    */
   recordPushOrder(order: Order): void {
-    if (this.includeMarketHours == MarketHours.ALL || this.includeMarketHours == order.getOrderMarketHoursType()) {
-      var orderDate:string;
+    if (this.includeMarketHours != MarketHours.ALL && this.includeMarketHours != order.getOrderMarketHoursType())
+      return;
 
-      orderDate = order.getInitialDate();
+    var orderDate:string = order.getInitialDate();
 
-      // Initialize the report if new date is detected
-      if (!(orderDate in this.report))
-        this.initializeReport(orderDate);
+    // Initialize the report if new date is detected
+    if (!(orderDate in this.report))
+      this.initializeReport(orderDate);
 
-      this.report[orderDate].numOrders++;
+    this.report[orderDate].numOrders++;
 
-      switch (order.channel) {
-        case 'CH.WEB':
-          this.report[orderDate].numOrdersByChannel.WEB++;
-          break;
-        case 'CH.WBR':
-          this.report[orderDate].numOrdersByChannel.WBR++;
-          break;
-        case 'CH.ATT':
-          this.report[orderDate].numOrdersByChannel.ATT++;
-          break;
-        case 'CH.MBL':
-          this.report[orderDate].numOrdersByChannel.MBL++;
-          break;
-        case 'CH.TMAX':
-          this.report[orderDate].numOrdersByChannel.TMAX++;
-          break;
-        case 'CH.TALK':
-          this.report[orderDate].numOrdersByChannel.TALK++;
-          break;
-        case 'CH.TBL':
-          this.report[orderDate].numOrdersByChannel.TBL++;
-          break;
-        default:
-          this.report[orderDate].numOrdersByChannel.UNKNOWN++;
-      }
-
-      switch (order.accountRRCode) {
-        case 'RMPA':
-          this.report[orderDate].numOrdersByRRCode.RMPA++;
-          break;
-        case 'RMP1':
-          this.report[orderDate].numOrdersByRRCode.RMP1++;
-          break;
-        case 'RMP2':
-          this.report[orderDate].numOrdersByRRCode.RMP2++;
-          break;
-        case 'RMP3':
-          this.report[orderDate].numOrdersByRRCode.RMP3++;
-          break;
-        case 'RMP4':
-          this.report[orderDate].numOrdersByRRCode.RMP4++;
-          break;
-        default:
-          this.report[orderDate].numOrdersByRRCode.RM++;
-          break;
-      }
-
-      switch (order.strategyType) {
-        case 'SPL':
-          this.report[orderDate].numOrdersByStrategy.SPL++;
-          break;
-        case 'OCO':
-          this.report[orderDate].numOrdersByStrategy.OCO++;
-          break;
-        case 'OTA':
-          this.report[orderDate].numOrdersByStrategy.OTA++;
-          break;
-        case 'FTO':
-          this.report[orderDate].numOrdersByStrategy.FTO++;
-          break;
-        case 'MLO':
-          this.report[orderDate].numOrdersByStrategy.MLO++;
-          break;
-      }
-
-      switch (order.orderType) {
-        case 'MARKET':
-          this.report[orderDate].numOrdersByOrderType.MARKET++;
-          break;
-        case 'LIMIT':
-          this.report[orderDate].numOrdersByOrderType.LIMIT++;
-          break;
-        case 'STOP_MARKET':
-          this.report[orderDate].numOrdersByOrderType.STOP_MARKET++;
-          break;
-        case 'STOP_LIMIT':
-          this.report[orderDate].numOrdersByOrderType.STOP_LIMIT++;
-          break;
-        case 'TRAILING_STOP_MARKET':
-          this.report[orderDate].numOrdersByOrderType.TRAILING_STOP_MARKET++;
-          break;
-        case 'TRAILING_STOP_LIMIT':
-          this.report[orderDate].numOrdersByOrderType.TRAILING_STOP_LIMIT++;
-          break;
-      }
-
-      if (order.channel == "CH.ATT" && order.accountRRCode == "RMP1")
-        this.report[orderDate].numOrdersByCustom.ATT_RMP1++;
+    switch (order.channel) {
+      case 'CH.WEB':
+        this.report[orderDate].numOrdersByChannel.WEB++;
+        break;
+      case 'CH.WBR':
+        this.report[orderDate].numOrdersByChannel.WBR++;
+        break;
+      case 'CH.ATT':
+        this.report[orderDate].numOrdersByChannel.ATT++;
+        break;
+      case 'CH.MBL':
+        this.report[orderDate].numOrdersByChannel.MBL++;
+        break;
+      case 'CH.TMAX':
+        this.report[orderDate].numOrdersByChannel.TMAX++;
+        break;
+      case 'CH.TALK':
+        this.report[orderDate].numOrdersByChannel.TALK++;
+        break;
+      case 'CH.TBL':
+        this.report[orderDate].numOrdersByChannel.TBL++;
+        break;
+      default:
+        this.report[orderDate].numOrdersByChannel.UNKNOWN++;
     }
+
+    switch (order.accountRRCode) {
+      case 'RMPA':
+        this.report[orderDate].numOrdersByRRCode.RMPA++;
+        break;
+      case 'RMP1':
+        this.report[orderDate].numOrdersByRRCode.RMP1++;
+        break;
+      case 'RMP2':
+        this.report[orderDate].numOrdersByRRCode.RMP2++;
+        break;
+      case 'RMP3':
+        this.report[orderDate].numOrdersByRRCode.RMP3++;
+        break;
+      case 'RMP4':
+        this.report[orderDate].numOrdersByRRCode.RMP4++;
+        break;
+      default:
+        this.report[orderDate].numOrdersByRRCode.RM++;
+        break;
+    }
+
+    switch (order.strategyType) {
+      case 'SPL':
+        this.report[orderDate].numOrdersByStrategy.SPL++;
+        break;
+      case 'OCO':
+        this.report[orderDate].numOrdersByStrategy.OCO++;
+        break;
+      case 'OTA':
+        this.report[orderDate].numOrdersByStrategy.OTA++;
+        break;
+      case 'FTO':
+        this.report[orderDate].numOrdersByStrategy.FTO++;
+        break;
+      case 'MLO':
+        this.report[orderDate].numOrdersByStrategy.MLO++;
+        break;
+    }
+
+    switch (order.orderType) {
+      case 'MARKET':
+        this.report[orderDate].numOrdersByOrderType.MARKET++;
+        break;
+      case 'LIMIT':
+        this.report[orderDate].numOrdersByOrderType.LIMIT++;
+        break;
+      case 'STOP_MARKET':
+        this.report[orderDate].numOrdersByOrderType.STOP_MARKET++;
+        break;
+      case 'STOP_LIMIT':
+        this.report[orderDate].numOrdersByOrderType.STOP_LIMIT++;
+        break;
+      case 'TRAILING_STOP_MARKET':
+        this.report[orderDate].numOrdersByOrderType.TRAILING_STOP_MARKET++;
+        break;
+      case 'TRAILING_STOP_LIMIT':
+        this.report[orderDate].numOrdersByOrderType.TRAILING_STOP_LIMIT++;
+        break;
+    }
+
+    if (order.channel == "CH.ATT" && order.accountRRCode == "RMP1")
+      this.report[orderDate].numOrdersByCustom.ATT_RMP1++;
   }
 
 
@@ -221,11 +222,27 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       numOrdersByStrategy: {SPL: 0, OCO: 0, OTA: 0, FTO: 0, MLO: 0},
       numOrdersByOrderType: {MARKET: 0, LIMIT: 0, STOP_MARKET: 0, STOP_LIMIT: 0, TRAILING_STOP_MARKET: 0, TRAILING_STOP_LIMIT: 0},
       numOrdersByCustom: {ATT_RMP1: 0},
+
       longestWaitingSec: 0,
       longestWaitingPlusApprovedSec: 0,
       longestWaitingPlusApprovedOrder: null,
+
+      numOrderExceptions: (key == 'totals') ? 0 : undefined,
       orderExceptions: []
     };
+  }
+
+  /**
+   * Record orders if time difference between the Waiting and Next Status (i.e. Open) is > order exception max seconds
+   */
+  protected recordOrderExceptions(order: Order): void {
+    // If status is Killed, it just means the order too a long time to review, we can disregard until we know the locked time
+    if (order.nextStatus == 'KILLED')
+        return;
+
+    if (order.getTimeDiff() > this.orderExceptionMaxSecs) {
+      this.report[order.getInitialDate()].orderExceptions.push(order);
+    }
   }
 
   /**
@@ -280,9 +297,10 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report[key].orderExceptions.forEach(order => {
           this.report['totals'].orderExceptions.push(order);
         });
-        //this.report[key].orderExceptions = undefined;
+        this.report['totals'].numOrderExceptions += this.report[key].orderExceptions.length;
+        this.report[key].orderExceptions = undefined;
 
-        //this.report['totals'].longestWaitingPlusApprovedOrder = undefined;
+        this.report['totals'].longestWaitingPlusApprovedOrder = undefined;
       }
     }
   }
