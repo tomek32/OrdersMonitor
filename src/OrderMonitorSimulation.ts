@@ -19,8 +19,6 @@ const exceptionReportCsv = './scratch/order_exceptions.csv';
 const orderExceptionMaxSecs: number = 60 * 5;
 const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, MarketHours.ALL);
 loadLockedOrders();
-runSimulation();
-exportReports();
 
 
 /**
@@ -28,11 +26,13 @@ exportReports();
  */
 function loadLockedOrders() {
   fastCsv
-    .fromPath(inputLockedFile, {headers: true})
-    .on('data', order => {
-      orderMonitor.addLockedOrderRevision(order);
-    })
-    .on('end', () => {});
+        .fromPath(inputLockedFile, {headers: true})
+        .on('data', order => {
+          orderMonitor.addLockedRevision(order);
+        })
+        .on('end', () => {
+          runSimulation();
+        });
 }
 
 /**
@@ -40,13 +40,14 @@ function loadLockedOrders() {
  */
 function runSimulation() {
   fastCsv
-    .fromPath(inputOrdersFile, {headers: true})
-    .on('data', order => {
-      orderMonitor.pushOrder(order);
-    })
-    .on('end', () => {
-      while (orderMonitor.popOrder()) {}
-    });
+        .fromPath(inputOrdersFile, {headers: true})
+        .on('data', order => {
+          orderMonitor.pushOrder(order);
+        })
+        .on('end', () => {
+          while (orderMonitor.popOrder()) {}
+          exportReports();
+        });
 }
 
 /**

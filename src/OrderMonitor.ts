@@ -8,20 +8,19 @@ import OrderMonitorReport from './OrderMonitorReport';
 const FastPriorityQueue: any = require('fastpriorityqueue');
 
 export interface OrderMonitorInterface {
-  lockedOrders: any[];
+  lockedOrders: {[key: string]: any};
   orderQueue: any;
   report: OrderMonitorReport;
 
-  addLockedOrderRevision(): void;
+  addLockedRevision(order: any): void;
   getReport(): any;
-  matchOrderToLockedRevision(order: Order): boolean;
   pushOrder(order: any): void;
   popOrder(): void;
 }
 
 
 export default class OrderMonitor implements OrderMonitorInterface {
-  lockedOrders: any[];
+  lockedOrders: {[key: string]: any};
   otherChannelMaxWaitSec: number;
   orderQueue: any;
   report: OrderMonitorReport;
@@ -34,7 +33,7 @@ export default class OrderMonitor implements OrderMonitorInterface {
    * @param otherChannelMaxWaitSec
    */
   constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: MarketHours, orderExceptionMaxSecs?: number) {
-    this.lockedOrders = [];
+    this.lockedOrders = {};
     this.orderQueue = new FastPriorityQueue();
     this.report = new OrderMonitorReport(includeMarketHours, orderExceptionMaxSecs);
 
@@ -45,11 +44,11 @@ export default class OrderMonitor implements OrderMonitorInterface {
   /**
    * Adds revision of locked status and will try to sync with waiting status being pushed later
    */
-  addLockedOrderRevision(order: any): void {
+  addLockedRevision(order: any): void {
     var newOrder: any = new Order(order);
     var orderNumber: string = newOrder.orderNumber;
 
-    this.lockedOrders.push({orderNumber: newOrder});
+    this.lockedOrders[orderNumber] = newOrder;
   }
 
   /**
@@ -60,26 +59,12 @@ export default class OrderMonitor implements OrderMonitorInterface {
   }
 
   /**
-   *
-   * @param order
-   */
-  matchOrderToLockedRevision(order: Order): boolean {
-    if (!(order.orderNumber in this.lockedOrders)) {
-      console.log('a');
-      return false;
-    }
-
-    order.setLockedTime(this.lockedOrders[order.orderNumber]);
-    return true;
-  }
-
-  /**
    * Pushes order onto queue
    * @param order
    */
   pushOrder(order: any): void {
     var newOrder : Order = new Order(order);
-    this.matchOrderToLockedRevision(newOrder);
+    this.findAndAssignLockedStatus(newOrder);
 
     this.orderQueue.add(newOrder);
     this.report.recordPushOrder(newOrder);
@@ -100,5 +85,18 @@ export default class OrderMonitor implements OrderMonitorInterface {
     }
     else
       return false;
+  }
+
+  /**
+   * @param order
+   */
+  protected findAndAssignLockedStatus(order: Order): boolean {
+    if (!(order.orderNumber in this.lockedOrders)) {
+      return false;
+    }
+
+    order.setLockedTime(this.lockedOrders[order.orderNumber]);
+    this.lockedOrders[order.orderNumber] = undefined;
+    return true;
   }
 }
