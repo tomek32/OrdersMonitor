@@ -47,6 +47,7 @@ export interface OrderInterface {
   waitingStatus: StatusType;
   nextStatusTimestamp: string;
   nextStatus: string;
+  lockedTimestamp: string;
   strategyType: string;
   strategyPrice: StrategyPriceType;
   securityType: SecurityType;
@@ -69,6 +70,7 @@ export default class Order implements OrderInterface {
   waitingStatus: StatusType;
   nextStatusTimestamp: string;
   nextStatus: string;
+  lockedTimestamp: string;
   strategyType: string;
   strategyPrice: StrategyPriceType;
   securityType: SecurityType;

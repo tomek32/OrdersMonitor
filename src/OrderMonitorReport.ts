@@ -16,8 +16,9 @@ export interface reportResource {
   longestWaitingPlusApprovedSec: number;
   longestWaitingPlusApprovedOrder: Order;
 
-  numOrderExceptions: number;
-  orderExceptions: Order[];
+  numOrderPastMaxSecs: number;
+  numOrphasedLockedOrders: number;
+  orderExceptions: {maxSecs: Order[], orphanedLocked: Order[]};
 }
 
 export interface OrderMonitorReportInterface {
@@ -227,8 +228,9 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       longestWaitingPlusApprovedSec: 0,
       longestWaitingPlusApprovedOrder: null,
 
-      numOrderExceptions: (key == 'totals') ? 0 : undefined,
-      orderExceptions: []
+      numOrderPastMaxSecs: (key == 'totals') ? 0 : undefined,
+      numOrphasedLockedOrders: (key == 'totals') ? 0 : undefined,
+      orderExceptions: {maxSecs: [], orphanedLocked: []}
     };
   }
 
@@ -241,7 +243,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         return;
 
     if (order.getTimeDiff() > this.orderExceptionMaxSecs) {
-      this.report[order.getInitialDate()].orderExceptions.push(order);
+      this.report[order.getInitialDate()].orderExceptions.maxSecs.push(order);
     }
   }
 
@@ -294,11 +296,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
           this.report['totals'].longestWaitingPlusApprovedSec = this.report[key].longestWaitingPlusApprovedSec;
         }
 
-        this.report[key].orderExceptions.forEach(order => {
-          this.report['totals'].orderExceptions.push(order);
+        this.report[key].orderExceptions.maxSecs.forEach(order => {
+          this.report['totals'].orderExceptions.maxSecs.push(order);
         });
-        this.report['totals'].numOrderExceptions += this.report[key].orderExceptions.length;
-        this.report[key].orderExceptions = undefined;
+        this.report['totals'].numOrderPastMaxSecs += this.report[key].orderExceptions.maxSecs.length;
+        this.report[key].orderExceptions.maxSecs = undefined;
 
         this.report['totals'].longestWaitingPlusApprovedOrder = undefined;
       }

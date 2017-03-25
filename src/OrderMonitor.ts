@@ -26,7 +26,7 @@ export default class OrderMonitor implements OrderMonitorInterface {
    *
    * @param includeMarketHours - default is to include all. set to restrict which orders are included
    * @param orderExceptionMaxSecs
-   * @param priorityWaitSecs
+   * @param otherChannelMaxWaitSec
    */
   constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: MarketHours, orderExceptionMaxSecs?: number) {
     this.orderQueue = new FastPriorityQueue();
