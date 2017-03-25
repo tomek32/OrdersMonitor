@@ -12,6 +12,7 @@ const writeJsonFile = require('write-json-file');
 
 const inputOrdersFile = './resources/orders.csv';
 const orderReportJson = './scratch/orders_report.json';
+const exceptionReportJson = './scratch/order_exceptions.json';
 const exceptionReportCsv = './scratch/order_exceptions.csv';
 
 const orderExceptionMaxSecs: number = 60 * 5;
@@ -26,6 +27,8 @@ fastCsv
         .on('end', function() {
             while (orderMonitor.popOrder()) {}
             const json : any = orderMonitor.getReport();
+
+            writeJsonFile(exceptionReportJson, json.totals.orderExceptions).then(() => {});
 
             const csv : any = json2csv({data: json.totals.orderExceptions});
             fs.writeFile(exceptionReportCsv, csv, function(err) {});
