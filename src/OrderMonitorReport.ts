@@ -38,7 +38,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
   /**
    * Constructor
    * @param includeMarketHours
-   * @param missedWaitingOrderSec
+   * @param orderExceptionMaxSecs
    */
   constructor(includeMarketHours: MarketHours = MarketHours.ALL,
               orderExceptionMaxSecs: number = 60*10) {
@@ -280,9 +280,9 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report[key].orderExceptions.forEach(order => {
           this.report['totals'].orderExceptions.push(order);
         });
-        this.report[key].orderExceptions = null;
+        //this.report[key].orderExceptions = undefined;
 
-        this.report['totals'].longestWaitingPlusApprovedOrder = null;
+        //this.report['totals'].longestWaitingPlusApprovedOrder = undefined;
       }
     }
   }

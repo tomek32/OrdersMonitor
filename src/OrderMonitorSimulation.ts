@@ -17,18 +17,18 @@ const exceptionReportCsv = './scratch/missed_waiting_order.csv';
 const orderExceptionMaxSecs: number = 60 * 5;
 
 
-var orderMonitor = new OrderMonitor(MarketHours.MARKETS_OPEN, orderExceptionMaxSecs);
+const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, MarketHours.MARKETS_OPEN);
 fastCsv
         .fromPath(inputOrdersFile, {headers: true})
         .on('data', function(order) {
             orderMonitor.pushOrder(order);
         })
         .on('end', function() {
-            while (orderMonitor.popOrder()) {};
-            var json : any = orderMonitor.getReport();
+            while (orderMonitor.popOrder()) {}
+            const json : any = orderMonitor.getReport();
 
             writeJsonFile(orderReportJson, json).then(() => {});
 
-            var csv : any = json2csv({data: json.totals.orderExceptions});
+            const csv : any = json2csv({data: json.totals.orderExceptions});
             fs.writeFile(exceptionReportCsv, csv, function(err) {});
         });
