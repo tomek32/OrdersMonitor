@@ -1,9 +1,10 @@
 /**
  * Created by Tom on 2017-03-18.
  */
-import {MarketHours} from "./Order";
+import {MarketHours, OrderExtendedTerms, RevisionType} from "./Order";
 import Order from './Order';
 import OrderMonitor from './OrderMonitor';
+import {createOrderFromCSV} from './OrderStream';
 
 const fastCsv = require("fast-csv");
 const fs = require('fs');
@@ -18,22 +19,22 @@ const exceptionReportCsv = './scratch/order_exceptions.csv';
 
 const orderExceptionMaxSecs: number = 60 * 5;
 const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, MarketHours.ALL);
-loadLockedOrders();
+runSimulation();
 
 
 /**
  * Loads locked orders to pass
- */
+ *
 function loadLockedOrders() {
   fastCsv
         .fromPath(inputLockedFile, {headers: true})
         .on('data', order => {
-          orderMonitor.addLockedRevision(order);
+          //orderMonitor.addLockedRevision(order);
         })
         .on('end', () => {
           runSimulation();
         });
-}
+}*/
 
 /**
  * Run simulation with pushing all waiting orders and then popping them
@@ -42,7 +43,9 @@ function runSimulation() {
   fastCsv
         .fromPath(inputOrdersFile, {headers: true})
         .on('data', order => {
-          orderMonitor.pushOrder(order);
+
+          var newOrder = createOrderFromCSV(order);
+          orderMonitor.pushOrder(newOrder);
         })
         .on('end', () => {
           while (orderMonitor.popOrder()) {}

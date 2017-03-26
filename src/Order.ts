@@ -38,86 +38,85 @@ export enum StatusType {
   FILLED, KILLED, OPEN, PARTIALLY_FILLED, WAITING
 }
 
-
-export interface OrderInterface {
-  accountRRCode: string;
-  orderNumber: string;
-  creationTimestamp: string;
-  waitingTimestamp: string;
-  waitingStatus: StatusType;
-  nextStatusTimestamp: string;
-  nextStatus: string;
-  lockedTimestamp: string;
-  strategyType: string;
-  strategyPrice: StrategyPriceType;
-  securityType: SecurityType;
-  actionType: ActionType;
-  durationType: DurationType;
-  nextDayInd: boolean;
-  channel: string;
-
-  getInitialDate(): string;
-  getOrderMarketHoursType(): MarketHours;
-  getTimeDiff(): number;
-  setChannel(trailer2txt: string): void;
-  setLockedTime(time: string): void;
+export enum RevisionType {
+  CREATED, AWAITING_REVIEW, UNDER_REVIEW, POST_REVIEW
 }
 
-
-export default class Order implements OrderInterface {
+export interface OrderExtendedTerms {
   accountRRCode: string;
-  orderNumber: string;
-  creationTimestamp: string;
-  waitingTimestamp: string;
-  waitingStatus: StatusType;
-  nextStatusTimestamp: string;
-  nextStatus: string;
-  lockedTimestamp: string;
-  strategyType: string;
-  strategyPrice: StrategyPriceType;
-  securityType: SecurityType;
   actionType: ActionType;
-  orderType: string;
+  channel: string;
   durationType: DurationType;
   nextDayInd: boolean;
-  channel: string;
+  orderType: string;
+  status: string;
+  strategyPrice: StrategyPriceType;
+  timestamp: string;
+
+}
+
+export interface OrderInterface {
+  strategyType: string;
+  securityType: SecurityType;
+  orderNumber: string;
+  trailer2txt: string;
+  extendedTerms: {[key: string]: OrderExtendedTerms};
+
+  getRevisionDate(revision: RevisionType): string;
+  getOrderMarketHoursType(): MarketHours;
+  getRevisionTimeDiff(fromRevision: RevisionType, toRevision: RevisionType): number;
+  getChannelFromTrailer(revision: RevisionType): void;
+  //setLockedTime(time: string): void;
+}
+
+export default class Order implements OrderInterface {
+  strategyType: string;
+  securityType: SecurityType;
+  orderNumber: string;
+  trailer2txt: string;
+  extendedTerms: {[key: string]: OrderExtendedTerms};
+
 
   /**
-   * Loads an order from orders db fields
-   * @param order
+   * Creates an order resource with revisions provided
+   * @param strategyType
+   * @param securityType
+   * @param extendedTerms[]
    */
-  constructor(order: any) {
-    this.accountRRCode = order['ACCT_BOB_CD'];
-    this.orderNumber = order['ORDER_NUM'];
-    this.creationTimestamp = order['ORDER_ITEM_CREATION_TS'];
-    this.waitingTimestamp = order['EFFECTIVE_TS1'];
-    this.waitingStatus = order['ORDER_ITEM_STAT_CD1'];
-    this.nextStatusTimestamp = order['EFFECTIVE_TS2'];
-    this.nextStatus = order['ORDER_ITEM_STAT_CD2'];
-    this.lockedTimestamp = undefined;
-    this.strategyType = order['ORDER_STRTGY_CD'];
-    this.strategyPrice = order['ORDER_PRICE_PLAN_CD'];
-    this.securityType = order['SECRTY_TYPE_CD'];
-    this.actionType = order['ACTION_TYPE_CD'];
-    this.orderType = order['ORDER_TYPE_CD'];
-    this.durationType = order['DURATN_TYPE_CD'];
-    this.nextDayInd = order['NEXT_DAY_ORDER_IND'];
-    this.setChannel(order['FTNOTE_TRAIL_2_TXT']);
+  constructor(strategyType: string,
+              securityType: SecurityType,
+              orderNumber: string,
+              trailer2txt: string,
+              extendedTerms: {[key: string]: OrderExtendedTerms}) {
+
+    this.strategyType = strategyType;
+    this.securityType = securityType;
+    this.orderNumber = orderNumber;
+    this.trailer2txt = trailer2txt;
+    this.extendedTerms = extendedTerms;
+
+    this.extendedTerms[RevisionType.AWAITING_REVIEW].channel = this.getChannelFromTrailer(RevisionType.AWAITING_REVIEW);
   }
 
   /**
-   * @returns {string} date when order went first into WAITING status
+   *
+   * @param status
+   * @returns {status} date of revision for status. format MM.DD.YYYY
    */
-  getInitialDate(): string {
-    var d: Date = new Date(this.waitingTimestamp);
+  getRevisionDate(revision: RevisionType): string {
+    //var revisionStr: string = Order.getRevisionTypeAsString(revision);
+    if (!(revision in this.extendedTerms))
+      return null;
+
+    var d: Date = new Date(this.extendedTerms[revision].timestamp);
     return (('0' + (d.getMonth() + 1).toString()).slice(-2) + '.' + ('0' + d.getDate()).slice(-2) + '.' + d.getFullYear());
   }
 
   /**
-   * @returns {MarketHours} if market hours were open or closed. Doesn't account for holidays
+   * @returns {MarketHours} if market hours were open or closed at time order went into waiting status. Doesn't account for holidays
    */
   getOrderMarketHoursType(): MarketHours {
-    var d: Date = new Date(this.waitingTimestamp);
+    var d: Date = new Date(this.getRevision(RevisionType.AWAITING_REVIEW).timestamp);
 
     if (d.getHours() < 9 || d.getHours() >= 16)
       return MarketHours.MARKETS_CLOSED;
@@ -132,24 +131,54 @@ export default class Order implements OrderInterface {
   /**
    * @returns {number} of seconds between the final and initial timestamp
    */
-  getTimeDiff(): number {
-    return (new Date(this.nextStatusTimestamp).getTime() - new Date(this.waitingTimestamp).getTime()) / 1000
+  getRevisionTimeDiff(fromRevision: RevisionType, toRevision: RevisionType): number {
+    var fromTimestamp: string = this.getRevision(RevisionType.AWAITING_REVIEW).timestamp;
+    var toTimestamp: string = this.getRevision(RevisionType.POST_REVIEW).timestamp;
+
+    return (new Date(fromTimestamp).getTime() - new Date(toTimestamp).getTime()) / 1000;
   }
 
   /**
    * Set the channel from the trailer text
    * @param {trailer2txt} has the channel in the format of CH.*
    */
-  setChannel(trailer2txt: string): void {
+  getChannelFromTrailer(revision: RevisionType): string {
+    var trailer2txt = this.trailer2txt;
     var i: number = trailer2txt.indexOf('CH.');
-    this.channel = trailer2txt.substring(i, trailer2txt.indexOf('/', i));
+    return trailer2txt.substring(i, trailer2txt.indexOf('/', i));
   }
 
   /**
    *
-   * @param order
+   * @param status
+   * @returns {status} date of revision for status. format MM.DD.YYYY
    */
+  getRevision(revision: RevisionType): OrderExtendedTerms {
+     //var a: any =  this.extendedTerms[Order.getRevisionTypeAsString(revision)];
+     //var b: any = this.extendedTerms['AWAITING_REVIEW'];
+
+    return this.extendedTerms[revision];
+  }
+
+  /**
+  static getRevisionTypeAsString(revision: RevisionType): string {
+    switch (revision) {
+      case RevisionType.CREATED:
+        return 'CREATED';
+      case RevisionType.AWAITING_REVIEW:
+        return 'AWAITING_REVIEW';
+      case RevisionType.UNDER_REVIEW:
+        return 'UNDER_REVIEW';
+      case RevisionType.POST_REVIEW:
+        return 'POST_REVIEW';
+    }
+  }*/
+
+  /**
+   *
+   * @param order
+
   setLockedTime(time: string): void {
     this.lockedTimestamp = time;
-  }
+  }*/
 }
