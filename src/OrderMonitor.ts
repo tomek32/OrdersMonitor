@@ -2,8 +2,7 @@
  * Created by Tom on 2017-03-18.
  */
 import Order from './Order';
-import {MarketHours} from "./Order";
-import {RevisionType} from "./Order";
+import {MarketHours, RevisionType} from "./Order";
 import OrderMonitorReport from './OrderMonitorReport';
 
 const FastPriorityQueue: any = require('fastpriorityqueue');

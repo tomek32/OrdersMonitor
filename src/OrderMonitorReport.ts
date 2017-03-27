@@ -2,8 +2,8 @@
  * Created by Tom on 2017-03-21.
  */
 import Order from './Order';
-import {MarketHours} from './Order';
-import {RevisionType} from './Order';
+import {MarketHours, RevisionType} from './Order';
+
 
 export interface reportResource {
   numOrders: number;

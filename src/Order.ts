@@ -62,11 +62,13 @@ export interface OrderInterface {
   trailer2txt: string;
   extendedTerms: {[key: string]: OrderExtendedTerms};
 
-  getRevisionDate(revision: RevisionType): string;
+  addRevision(revision: RevisionType, extendedTerms: OrderExtendedTerms): boolean;
+  getChannelFromTrailer(revision: RevisionType): string;
   getOrderMarketHoursType(): MarketHours;
+  getRevision(revision: RevisionType): OrderExtendedTerms;
+  getRevisionDate(revision: RevisionType): string;
   getRevisionTimeDiff(fromRevision: RevisionType, toRevision: RevisionType): number;
-  getChannelFromTrailer(revision: RevisionType): void;
-  //setLockedTime(time: string): void;
+  getUniqueID(): string;
 }
 
 export default class Order implements OrderInterface {
@@ -81,7 +83,9 @@ export default class Order implements OrderInterface {
    * Creates an order resource with revisions provided
    * @param strategyType
    * @param securityType
-   * @param extendedTerms[]
+   * @param orderNumber
+   * @param trailer2txt
+   * @param extendedTerms
    */
   constructor(strategyType: string,
               securityType: SecurityType,
@@ -95,21 +99,41 @@ export default class Order implements OrderInterface {
     this.trailer2txt = trailer2txt;
     this.extendedTerms = extendedTerms;
 
-    this.extendedTerms[RevisionType.AWAITING_REVIEW].channel = this.getChannelFromTrailer(RevisionType.AWAITING_REVIEW);
+    Object.keys(this.extendedTerms).forEach(key => {
+      this.extendedTerms[key].channel = this.getChannelFromTrailer(Order.getStatusAsRevisionType(key));
+    });
+  }
+
+  /**s
+   *
+   * @param revision
+   * @param extendedTerms
+   * @returns {boolean}
+   */
+  addRevision(revision: RevisionType, extendedTerms: OrderExtendedTerms): boolean {
+    if (revision in this.extendedTerms)
+      return false;
+
+    if (revision == RevisionType.UNDER_REVIEW) {
+      var waitingTimestamp: string = this.getRevision(RevisionType.AWAITING_REVIEW).timestamp;
+      var lockedTimestamp: string = extendedTerms.timestamp;
+      var timeDiff: number = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
+      if ((timeDiff < 0) || (timeDiff > 60*2))
+        return false;
+    }
+
+    this.extendedTerms[revision] = extendedTerms;
+    return true;
   }
 
   /**
-   *
-   * @param status
-   * @returns {status} date of revision for status. format MM.DD.YYYY
+   * Set the channel from the trailer text
+   * @param revision has the channel in the format of CH.*
    */
-  getRevisionDate(revision: RevisionType): string {
-    //var revisionStr: string = Order.getRevisionTypeAsString(revision);
-    if (!(revision in this.extendedTerms))
-      return null;
-
-    var d: Date = new Date(this.extendedTerms[revision].timestamp);
-    return (('0' + (d.getMonth() + 1).toString()).slice(-2) + '.' + ('0' + d.getDate()).slice(-2) + '.' + d.getFullYear());
+  getChannelFromTrailer(revision: RevisionType): string {
+    var trailer2txt = this.trailer2txt;
+    var i: number = trailer2txt.indexOf('CH.');
+    return trailer2txt.substring(i, trailer2txt.indexOf('/', i));
   }
 
   /**
@@ -129,38 +153,45 @@ export default class Order implements OrderInterface {
   }
 
   /**
+   *
+   * @param revision
+   * @returns {OrderExtendedTerms} date of revision for status. format MM.DD.YYYY
+   */
+  getRevision(revision: RevisionType): OrderExtendedTerms {
+    return this.extendedTerms[revision];
+  }
+
+  /**
+   *
+   * @param revision
+   * @returns {string} date of revision for status. format MM.DD.YYYY
+   */
+  getRevisionDate(revision: RevisionType): string {
+    //var revisionStr: string = Order.getRevisionTypeAsString(revision);
+    if (!(revision in this.extendedTerms))
+      return null;
+
+    var d: Date = new Date(this.extendedTerms[revision].timestamp);
+    return (('0' + (d.getMonth() + 1).toString()).slice(-2) + '.' + ('0' + d.getDate()).slice(-2) + '.' + d.getFullYear());
+  }
+
+  /**
+   *
+   * @param fromRevision
+   * @param toRevision
    * @returns {number} of seconds between the final and initial timestamp
    */
   getRevisionTimeDiff(fromRevision: RevisionType, toRevision: RevisionType): number {
     var fromTimestamp: string = this.getRevision(RevisionType.AWAITING_REVIEW).timestamp;
     var toTimestamp: string = this.getRevision(RevisionType.POST_REVIEW).timestamp;
 
-    return (new Date(fromTimestamp).getTime() - new Date(toTimestamp).getTime()) / 1000;
+    return (new Date(toTimestamp).getTime() - new Date(fromTimestamp).getTime()) / 1000;
   }
 
   /**
-   * Set the channel from the trailer text
-   * @param {trailer2txt} has the channel in the format of CH.*
+   * @param revision
+   * @returns {string}
    */
-  getChannelFromTrailer(revision: RevisionType): string {
-    var trailer2txt = this.trailer2txt;
-    var i: number = trailer2txt.indexOf('CH.');
-    return trailer2txt.substring(i, trailer2txt.indexOf('/', i));
-  }
-
-  /**
-   *
-   * @param status
-   * @returns {status} date of revision for status. format MM.DD.YYYY
-   */
-  getRevision(revision: RevisionType): OrderExtendedTerms {
-     //var a: any =  this.extendedTerms[Order.getRevisionTypeAsString(revision)];
-     //var b: any = this.extendedTerms['AWAITING_REVIEW'];
-
-    return this.extendedTerms[revision];
-  }
-
-  /**
   static getRevisionTypeAsString(revision: RevisionType): string {
     switch (revision) {
       case RevisionType.CREATED:
@@ -172,13 +203,31 @@ export default class Order implements OrderInterface {
       case RevisionType.POST_REVIEW:
         return 'POST_REVIEW';
     }
-  }*/
+  }
 
   /**
    *
-   * @param order
+   * @param status
+   * @returns {RevisionType}
+   */
+  static getStatusAsRevisionType(status: string): RevisionType {
+    switch (status) {
+      case 'PLACED':
+        return RevisionType.CREATED;
+      case 'WAITING':
+        return RevisionType.AWAITING_REVIEW;
+      case 'LOCKED':
+        return RevisionType.UNDER_REVIEW;
+      default:
+        return RevisionType.POST_REVIEW;
+    }
+  }
 
-  setLockedTime(time: string): void {
-    this.lockedTimestamp = time;
-  }*/
+  /**
+   *
+   * @returns {string} that uniquely indentifies the order
+   */
+  getUniqueID(): string {
+    return this.orderNumber + this.getRevisionDate(RevisionType.CREATED);
+  }
 }
