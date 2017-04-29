@@ -4,6 +4,7 @@
 import Order from './Order';
 import {OrderMarketHours, OrderRevisionType} from './Order';
 
+const orderExceptionMaxSecs: number = 60 * 10;
 
 export interface reportResource {
   numOrders: number;
@@ -44,7 +45,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param orderExceptionMaxSecs default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
    */
   constructor(includeMarketHours: OrderMarketHours = OrderMarketHours.ALL,
-              orderExceptionMaxSecs: number = 60*10) {
+              orderExceptionMaxSecs: number = orderExceptionMaxSecs) {
     this.report = {};
     this.includeMarketHours = includeMarketHours;
     this.orderExceptionMaxSecs = orderExceptionMaxSecs;

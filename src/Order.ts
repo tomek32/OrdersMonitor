@@ -79,6 +79,7 @@ export interface OrderInterface {
   getUniqueID(): string;
 }
 
+const orderExceptionMaxSecs: number = 60 * 10;
 
 
 /**
@@ -143,8 +144,8 @@ export default class Order implements OrderInterface {
       }
 
       timeDiff = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
-      if ((timeDiff < 0) || (timeDiff > 60*10)) {
-        console.log('   Revision time difference is ' + timeDiff + '. Max time difference allowed is: ' 60*2);
+      if ((timeDiff < 0) || (timeDiff > orderExceptionMaxSecs)) {
+        console.log('   Revision time difference is ' + timeDiff + '. Max time difference allowed is: ' + orderExceptionMaxSecs);
         return false;
       }
     }
