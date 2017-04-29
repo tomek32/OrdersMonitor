@@ -37,6 +37,7 @@ export interface OrderMonitorReportInterface {
 
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
+  reportOrigNumOfStrategyOrders: number;
   includeMarketHours: OrderMarketHours;
   orderExceptionMaxSecs: number;
 
@@ -47,6 +48,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
   constructor(includeMarketHours: OrderMarketHours = OrderMarketHours.ALL,
               orderExceptionMaxSecs: number = orderExceptionMaxSecs) {
     this.report = {};
+    this.reportOrigNumOfStrategyOrders = true;
     this.includeMarketHours = includeMarketHours;
     this.orderExceptionMaxSecs = orderExceptionMaxSecs;
   }
@@ -60,15 +62,14 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     this.updateOverallTotalsReport();
 
     Object.keys(formattedReport).forEach(key => {
-      var d:Date = new Date(formattedReport[key].longestWaitingPlusApprovedSec);
+      const d:Date = new Date(formattedReport[key].longestWaitingPlusApprovedSec);
 
-      /**
-       // TODO: refactor to make this paramaterized
-       formattedReport[key].numOrdersByStrategy.OCO /= 2;
-       formattedReport[key].numOrdersByStrategy.OTA /= 2;
-       formattedReport[key].numOrdersByStrategy.FTO /= 3;
-       formattedReport[key].numOrdersByStrategy.MLO /= 2;
-       */
+      if (!this.reportOrigNumOfStrategyOrders) {
+        formattedReport[key].numOrdersByStrategy.OCO /= 2;
+        formattedReport[key].numOrdersByStrategy.OTA /= 2;
+        formattedReport[key].numOrdersByStrategy.FTO /= 3;
+        formattedReport[key].numOrdersByStrategy.MLO /= 2;
+      }
 
       // TODO: don't return this until we get locked status
       formattedReport[key].longestWaitingSec = undefined;
