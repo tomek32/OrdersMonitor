@@ -45,4 +45,4 @@ function exportReports() {
   writeJsonFile(orderReportJson, json).then(() => {});
 }
 
-const orderStream: OrderStream = new OrderStream(simulation);
+const orderStream: OrderStream = new OrderStream(simulation, false);

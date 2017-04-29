@@ -133,10 +133,22 @@ export default class Order implements OrderInterface {
     if (revision == OrderRevisionType.UNDER_REVIEW) {
       const waitingTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
       const lockedTimestamp: string = extendedTerms.timestamp;
-      const timeDiff: number = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
+      const postReviewTimestamp: string = this.getRevision((OrderRevisionType.POST_REVIEW)).timestamp;
+      var timeDiff: number = 0;
 
-      if ((timeDiff < 0) || (timeDiff > 60*2))
+      timeDiff = (new Date(lockedTimestamp).getTime() - new Date(postReviewTimestamp).getTime()) / 1000;
+      if (timeDiff => 0) {
+        // TODO: refactor to throw exception
+        console.log('   Revision time is after the post review timestamp');
         return false;
+      }
+
+      timeDiff = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
+      if ((timeDiff < 0) || (timeDiff > 60*10)) {
+        // TODO: refactor to throw exception
+        console.log('   Revision time difference is ' + timeDiff + '. Max time difference allowed is: ' 60*2);
+        return false;
+      }
     }
 
     this.extendedTerms[revision] = extendedTerms;

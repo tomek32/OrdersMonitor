@@ -20,14 +20,17 @@ export default class OrderStream {
 
   /**
    * @param callback function to call once all orders are loaded
+   * @param includeLockedOrders set to false to not load locked revisions
    */
-  constructor(callback: any) {
+  constructor(callback: any, includeLockedOrders: boolean = true) {
     this.orders = {};
 
     this.loadWaitingOrders(() => {
-      this.loadLockedOrders(() => {
-        callback();
-      });
+      if (includeLockedOrders) {
+        this.loadLockedOrders(() => {
+          callback();
+        });
+      }
     });
   }
 
@@ -35,8 +38,8 @@ export default class OrderStream {
    * @param order
    */
   protected addLockedRevision(csvOrder: any): void {
-    var newOrder: Order = OrderStream.createOrderFromCSV(csvOrder);
-    var newOrderID: string = newOrder.getUniqueID();
+    const newOrder: Order = OrderStream.createOrderFromCSV(csvOrder);
+    const newOrderID: string = newOrder.getUniqueID();
 
     if ((newOrderID in this.orders) &&
         (this.orders[newOrderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
@@ -49,7 +52,7 @@ export default class OrderStream {
    * @param csvOrder object loaded from csv file
    */
   protected createOrder(csvOrder: any): void {
-    var newOrder = OrderStream.createOrderFromCSV(csvOrder);
+    const newOrder = OrderStream.createOrderFromCSV(csvOrder);
 
     if (newOrder.getUniqueID() in this.orders) {
       console.log('Duplicate order. Cannot create order: ' + newOrder.getUniqueID()); //TODO: refactor to throw exception
@@ -64,8 +67,8 @@ export default class OrderStream {
    * @return {Order} object representation of order
    */
   static createOrderFromCSV(order: any): Order {
-    var revision: OrderRevisionType;
-    var extendedTerms: { [key: string]: OrderExtendedTerms } = {};
+    const revision: OrderRevisionType;
+    const extendedTerms: { [key: string]: OrderExtendedTerms } = {};
 
     switch (order['ORDER_ITEM_STAT_CD1']) {
       case 'WAITING':
