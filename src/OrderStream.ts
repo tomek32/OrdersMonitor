@@ -24,15 +24,11 @@ export default class OrderStream {
   constructor(callback: any) {
     this.orders = {};
 
-    const loadLockedOrdersComplete = function() {
-      callback();
-    };
-
-    const loadWaitingOrdersComplete = function() {
-      this.loadLockedOrders(loadLockedOrdersComplete);
-    };
-
-    this.loadWaitingOrders(loadWaitingOrdersComplete);
+    this.loadWaitingOrders(() => {
+      this.loadLockedOrders(() => {
+        callback();
+      });
+    });
   }
 
   /**
@@ -40,13 +36,13 @@ export default class OrderStream {
    */
   protected addLockedRevision(csvOrder: any): void {
     var newOrder: Order = OrderStream.createOrderFromCSV(csvOrder);
-    var orderID: string = newOrder.getUniqueID();
+    var newOrderID: string = newOrder.getUniqueID();
 
-    if ((orderID in this.orders) &&
-        (this.orders[orderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
-      delete this.orders[orderID];
+    if ((newOrderID in this.orders) &&
+        (this.orders[newOrderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
+      delete this.orders[newOrderID]; // TODO: temp, remove this delete
     else
-      console.log('Could not add revision'); // TODO: refactor to throw exception
+      console.log('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]); // TODO: refactor to throw exception
   }
 
   /**
@@ -56,7 +52,7 @@ export default class OrderStream {
     var newOrder = OrderStream.createOrderFromCSV(csvOrder);
 
     if (newOrder.getUniqueID() in this.orders) {
-      console.log('duplicate create order'); //TODO: refactor to throw exception
+      console.log('Duplicate order. Cannot create order: ' + newOrder.getUniqueID()); //TODO: refactor to throw exception
       return;
     }
 
