@@ -42,16 +42,6 @@ export default class OrderMonitor implements OrderMonitorInterface {
   }
 
   /**
-   * Adds revision of locked status and will try to sync with waiting status being pushed later
-
-  addLockedRevision(order: any): void {
-    var newOrder: any = new Order(order);
-    var orderNumber: string = newOrder.orderNumber;
-
-    this.lockedOrders[orderNumber] = newOrder;
-  }*/
-
-  /**
    * @returns {any} current report
    */
   getReport(): any {
@@ -84,21 +74,4 @@ export default class OrderMonitor implements OrderMonitorInterface {
     else
       return false;
   }
-
-  /**
-   * @param order
-
-  protected findAndAssignLockedStatus(order: Order): boolean {
-    if (!(order.orderNumber in this.lockedOrders))
-      return false;
-
-    var lockedTime: number = new Date(this.lockedOrders[order.orderNumber].waitingTimestamp).getTime() / 1000;
-    var waitingTime: number = new Date(order.waitingTimestamp).getTime() / 1000;
-    if (Math.abs(waitingTime - lockedTime) > 60*5)
-      return false;
-
-    order.setLockedTime(this.lockedOrders[order.orderNumber]);
-    delete this.lockedOrders[order.orderNumber];
-    return true;
-  }*/
 }

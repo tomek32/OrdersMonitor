@@ -54,7 +54,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @returns {{[p: string]: any}} the report
    */
   getReport(): {[p: string]: any} {
-    var formattedReport: {[key: string]: any} = this.report;
+    const formattedReport: {[key: string]: any} = this.report;
 
     this.updateOverallTotalsReport();
 
@@ -90,12 +90,12 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     if (order.getOrderMarketHoursType() != OrderMarketHours.MARKETS_OPEN)
       return;
 
-    var date: string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
+    const date: string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
 
     // Longest waited time between 9:30am and 4pm
     if (date in this.report) {
-      var currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
-      var newTimeToApprove:number = order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW);
+      const currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
+      const newTimeToApprove:number = order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW);
 
       if (newTimeToApprove > currLongestApproved) {
         this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
@@ -114,7 +114,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     if (this.includeMarketHours != OrderMarketHours.ALL && this.includeMarketHours != order.getOrderMarketHoursType())
       return;
 
-    var orderDate:string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
+    const orderDate:string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
 
     // Initialize the report if new date is detected
     if (!(orderDate in this.report))
