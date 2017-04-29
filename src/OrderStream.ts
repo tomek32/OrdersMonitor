@@ -45,7 +45,7 @@ export default class OrderStream {
         (this.orders[newOrderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
       delete this.orders[newOrderID]; // TODO: temp, remove this delete
     else
-      console.log('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]); // TODO: refactor to throw exception
+      throw new Error('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]);
   }
 
   /**
@@ -54,10 +54,8 @@ export default class OrderStream {
   protected createOrder(csvOrder: any): void {
     const newOrder = OrderStream.createOrderFromCSV(csvOrder);
 
-    if (newOrder.getUniqueID() in this.orders) {
-      console.log('Duplicate order. Cannot create order: ' + newOrder.getUniqueID()); //TODO: refactor to throw exception
-      return;
-    }
+    if (newOrder.getUniqueID() in this.orders)
+      throw new Error('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
 
     this.orders[newOrder.getUniqueID()]= newOrder;
   }
@@ -140,7 +138,9 @@ export default class OrderStream {
     fastCsv
       .fromPath(inputOrdersFile, {headers: true})
       .on('data', csvOrder => {
-        this.createOrder(csvOrder);
+        try {
+          this.createOrder(csvOrder);
+        } catch (err) {}
       })
       .on('end', () => {
         callback();
