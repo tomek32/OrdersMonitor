@@ -15,14 +15,14 @@ const orderReportJson = './scratch/orders_report.json';
 const exceptionReportJson = './scratch/order_exceptions.json';
 const exceptionReportCsv = './scratch/order_exceptions.csv';
 
-const orderExceptionMaxSecs: number = 60 * 5;
+const orderExceptionMaxSecs: number = 60 * 10;
 const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
 
 
 /**
  * Run simulation by pushing all orders onto queue and then empty the entire queue
  */
-var simulation = function () {
+var simulationCallback = function () {
   Object.keys(orderStream.orders).forEach(key => {
     orderMonitor.pushOrder(orderStream.orders[key]);
   });
@@ -45,4 +45,5 @@ function exportReports() {
   writeJsonFile(orderReportJson, json).then(() => {});
 }
 
-const orderStream: OrderStream = new OrderStream(simulation, false);
+/** Turned off locked orders. Locked orders input file has too many false positives to reliably report on */
+const orderStream: OrderStream = new OrderStream(simulationCallback, false);
