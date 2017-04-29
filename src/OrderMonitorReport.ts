@@ -2,7 +2,7 @@
  * Created by Tom on 2017-03-21.
  */
 import Order from './Order';
-import {MarketHours, RevisionType} from './Order';
+import {OrderMarketHours, OrderRevisionType} from './Order';
 
 
 export interface reportResource {
@@ -24,7 +24,7 @@ export interface reportResource {
 
 export interface OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
-  includeMarketHours: MarketHours;
+  includeMarketHours: OrderMarketHours;
   orderExceptionMaxSecs: number;
 
   getReport(): any;
@@ -33,17 +33,17 @@ export interface OrderMonitorReportInterface {
 }
 
 
+
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
-  includeMarketHours: MarketHours;
+  includeMarketHours: OrderMarketHours;
   orderExceptionMaxSecs: number;
 
   /**
-   * Constructor
    * @param includeMarketHours default is 30 sec. set max amount of time before switching to regular FIFO
    * @param orderExceptionMaxSecs default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
    */
-  constructor(includeMarketHours: MarketHours = MarketHours.ALL,
+  constructor(includeMarketHours: OrderMarketHours = OrderMarketHours.ALL,
               orderExceptionMaxSecs: number = 60*10) {
     this.report = {};
     this.includeMarketHours = includeMarketHours;
@@ -53,7 +53,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
   /**
    * @returns {{[p: string]: any}} the report
    */
-  getReport(): any {
+  getReport(): {[p: string]: any} {
     var formattedReport: {[key: string]: any} = this.report;
 
     this.updateOverallTotalsReport();
@@ -61,7 +61,8 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     Object.keys(formattedReport).forEach(key => {
       var d:Date = new Date(formattedReport[key].longestWaitingPlusApprovedSec);
 
-      /**TODO make this paramaterized
+      /**
+       // TODO: refactor to make this paramaterized
        formattedReport[key].numOrdersByStrategy.OCO /= 2;
        formattedReport[key].numOrdersByStrategy.OTA /= 2;
        formattedReport[key].numOrdersByStrategy.FTO /= 3;
@@ -86,15 +87,15 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param order
    */
   recordPopOrder(order: Order): void {
-    if (order.getOrderMarketHoursType() != MarketHours.MARKETS_OPEN)
+    if (order.getOrderMarketHoursType() != OrderMarketHours.MARKETS_OPEN)
       return;
 
-    var date: string = order.getRevisionDate(RevisionType.AWAITING_REVIEW);
+    var date: string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
 
     // Longest waited time between 9:30am and 4pm
     if (date in this.report) {
       var currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
-      var newTimeToApprove:number = order.getRevisionTimeDiff(RevisionType.AWAITING_REVIEW, RevisionType.POST_REVIEW);
+      var newTimeToApprove:number = order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW);
 
       if (newTimeToApprove > currLongestApproved) {
         this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
@@ -110,10 +111,10 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param order
    */
   recordPushOrder(order: Order): void {
-    if (this.includeMarketHours != MarketHours.ALL && this.includeMarketHours != order.getOrderMarketHoursType())
+    if (this.includeMarketHours != OrderMarketHours.ALL && this.includeMarketHours != order.getOrderMarketHoursType())
       return;
 
-    var orderDate:string = order.getRevisionDate(RevisionType.AWAITING_REVIEW);
+    var orderDate:string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
 
     // Initialize the report if new date is detected
     if (!(orderDate in this.report))
@@ -121,7 +122,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
     this.report[orderDate].numOrders++;
 
-    switch (order.getRevision(RevisionType.AWAITING_REVIEW).channel) {
+    switch (order.getRevision(OrderRevisionType.AWAITING_REVIEW).channel) {
       case 'CH.WEB':
         this.report[orderDate].numOrdersByChannel.WEB++;
         break;
@@ -147,7 +148,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report[orderDate].numOrdersByChannel.UNKNOWN++;
     }
 
-    switch (order.getRevision(RevisionType.AWAITING_REVIEW).accountRRCode) {
+    switch (order.getRevision(OrderRevisionType.AWAITING_REVIEW).accountRRCode) {
       case 'RMPA':
         this.report[orderDate].numOrdersByRRCode.RMPA++;
         break;
@@ -186,7 +187,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         break;
     }
 
-    switch (order.getRevision(RevisionType.AWAITING_REVIEW).orderType) {
+    switch (order.getRevision(OrderRevisionType.AWAITING_REVIEW).orderType) {
       case 'MARKET':
         this.report[orderDate].numOrdersByOrderType.MARKET++;
         break;
@@ -207,8 +208,8 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         break;
     }
 
-    if (order.getRevision(RevisionType.AWAITING_REVIEW).channel == "CH.ATT" &&
-        order.getRevision(RevisionType.AWAITING_REVIEW).accountRRCode == "RMP1")
+    if (order.getRevision(OrderRevisionType.AWAITING_REVIEW).channel == "CH.ATT" &&
+        order.getRevision(OrderRevisionType.AWAITING_REVIEW).accountRRCode == "RMP1")
       this.report[orderDate].numOrdersByCustom.ATT_RMP1++;
   }
 
@@ -241,11 +242,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    */
   protected recordOrderExceptions(order: Order): void {
     // If status is Killed, it just means the order too a long time to review, we can disregard until we know the locked time
-    if (order.getRevision(RevisionType.POST_REVIEW).status == 'KILLED')
+    if (order.getRevision(OrderRevisionType.POST_REVIEW).status == 'KILLED')
         return;
 
-    if (order.getRevisionTimeDiff(RevisionType.AWAITING_REVIEW, RevisionType.POST_REVIEW) > this.orderExceptionMaxSecs) {
-      this.report[order.getRevisionDate(RevisionType.AWAITING_REVIEW)].orderExceptions.maxSecs.push(order);
+    if (order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW) > this.orderExceptionMaxSecs) {
+      this.report[order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW)].orderExceptions.maxSecs.push(order);
     }
   }
 
@@ -253,7 +254,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * Calculates the overall total report
    */
   protected updateOverallTotalsReport(): void {
-    //TODO: add check to prevent consumer to pass total into the object
+    // TODO: add check to prevent consumer to pass total into the object
     this.initializeReport('totals');
 
     for (const key of Object.keys(this.report)) {

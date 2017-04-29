@@ -2,7 +2,7 @@
  * Created by Tom on 2017-03-18.
  */
 import Order from './Order';
-import {MarketHours, RevisionType} from "./Order";
+import {OrderMarketHours, OrderRevisionType} from "./Order";
 import OrderMonitorReport from './OrderMonitorReport';
 
 const FastPriorityQueue: any = require('fastpriorityqueue');
@@ -32,7 +32,7 @@ export default class OrderMonitor implements OrderMonitorInterface {
    * @param orderExceptionMaxSecs
    * @param otherChannelMaxWaitSec
    */
-  constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: MarketHours, orderExceptionMaxSecs?: number) {
+  constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: OrderMarketHours, orderExceptionMaxSecs?: number) {
     //this.lockedOrders = {};
     this.orderQueue = new FastPriorityQueue();
     this.report = new OrderMonitorReport(includeMarketHours, orderExceptionMaxSecs);

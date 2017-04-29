@@ -1,7 +1,7 @@
 /**
  * Created by Tom on 2017-03-18.
  */
-import {MarketHours, OrderExtendedTerms, RevisionType} from "./Order";
+import {OrderMarketHours, OrderExtendedTerms, OrderRevisionType} from "./Order";
 import Order from './Order';
 import OrderMonitor from './OrderMonitor';
 import OrderStream from './OrderStream';
@@ -16,22 +16,23 @@ const exceptionReportJson = './scratch/order_exceptions.json';
 const exceptionReportCsv = './scratch/order_exceptions.csv';
 
 const orderExceptionMaxSecs: number = 60 * 5;
-const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, MarketHours.ALL);
+const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
+
 
 /**
- *
+ * Run simulation by pushing all orders onto queue and then empty the entire queue
  */
 var simulation = function () {
   Object.keys(orderStream.orders).forEach(key => {
     orderMonitor.pushOrder(orderStream.orders[key]);
   });
-  while (orderMonitor.popOrder()) {
-  }
+
+  while (orderMonitor.popOrder()) {}
   exportReports();
 };
 
 /**
- * Export reports
+ * Export order monitor reports
  */
 function exportReports() {
   const json : any = orderMonitor.getReport();
@@ -44,4 +45,4 @@ function exportReports() {
   writeJsonFile(orderReportJson, json).then(() => {});
 }
 
-var orderStream: OrderStream = new OrderStream(simulation);
+const orderStream: OrderStream = new OrderStream(simulation);

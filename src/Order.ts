@@ -1,11 +1,16 @@
 /**
  * Created by Tom on 2017-03-21.
  */
-export enum MarketHours {
+import {error} from "util";
+
+/**
+ * Order Enumeration Types
+ */
+export enum OrderMarketHours {
   ALL, MARKETS_OPEN, MARKETS_CLOSED, EXTENDED_MARKETS
 }
 
-export enum Channel {
+export enum OrderChannel {
   WEB, WBR, ATT, MBL, TMAX, TALK, TBL, UNKNOWN
 }
 
@@ -13,85 +18,95 @@ export enum AccountRRCode {
   RMPA, RMP1, RMP2, RMP3, RMP4, RM
 }
 
-export enum StrategyType {
+export enum OrderStrategyType {
   SPL, OCO, OTA, FTO, MLO
 }
 
-export enum StrategyPriceType {
+export enum OrderStrategyPriceType {
   EVEN, MARKET, NET_DEBIT, NET_CREDIT
 }
 
-export enum SecurityType {
+export enum OrderSecurityType {
   EQUITY, OPTION
 }
 
-export enum ActionType {
+export enum OrderActionType {
   BUY, SELL, SHORT_SELL, BUY_TO_COVER,
   BUY_TO_OPEN, BUY_TO_CLOSE, SELL_TO_OPEN, SELL_TO_OPEN_COVERED, SELL_TO_OPEN_UNCOVERED, SELL_TO_CLOSE
 }
 
-export enum DurationType {
+export enum OrderDurationType {
   CANCEL, DAY, EXT, GTD
 }
 
-export enum StatusType {
+export enum OrderStatusType {
   FILLED, KILLED, OPEN, PARTIALLY_FILLED, WAITING
 }
 
-export enum RevisionType {
+export enum OrderRevisionType {
   CREATED, AWAITING_REVIEW, UNDER_REVIEW, POST_REVIEW
 }
 
+/**
+ * Order Interfaces
+ */
 export interface OrderExtendedTerms {
   accountRRCode: string;
-  actionType: ActionType;
+  actionType: OrderActionType;
   channel: string;
-  durationType: DurationType;
+  durationType: OrderDurationType;
   nextDayInd: boolean;
   orderType: string;
   status: string;
-  strategyPrice: StrategyPriceType;
+  strategyPrice: OrderStrategyPriceType;
   timestamp: string;
 
 }
 
 export interface OrderInterface {
   strategyType: string;
-  securityType: SecurityType;
+  securityType: OrderSecurityType;
   orderNumber: string;
   trailer2txt: string;
   extendedTerms: {[key: string]: OrderExtendedTerms};
 
-  addRevision(revision: RevisionType, extendedTerms: OrderExtendedTerms): boolean;
-  getChannelFromTrailer(revision: RevisionType): string;
-  getOrderMarketHoursType(): MarketHours;
-  getRevision(revision: RevisionType): OrderExtendedTerms;
-  getRevisionDate(revision: RevisionType): string;
-  getRevisionTimeDiff(fromRevision: RevisionType, toRevision: RevisionType): number;
+  addRevision(revision: OrderRevisionType, extendedTerms: OrderExtendedTerms): boolean;
+  getChannelFromTrailer(revision: OrderRevisionType): string;
+  getOrderMarketHoursType(): OrderMarketHours;
+  getRevision(revision: OrderRevisionType): OrderExtendedTerms;
+  getRevisionDate(revision: OrderRevisionType): string;
+  getRevisionTimeDiff(fromRevision: OrderRevisionType, toRevision: OrderRevisionType): number;
   getUniqueID(): string;
 }
 
+
+
+/**
+ * Order class
+ */
 export default class Order implements OrderInterface {
   strategyType: string;
-  securityType: SecurityType;
+  securityType: OrderSecurityType;
   orderNumber: string;
   trailer2txt: string;
   extendedTerms: {[key: string]: OrderExtendedTerms};
 
-
   /**
    * Creates an order resource with revisions provided
-   * @param strategyType
-   * @param securityType
-   * @param orderNumber
-   * @param trailer2txt
-   * @param extendedTerms
+   * @param strategyType - strategy type
+   * @param securityType - security type
+   * @param orderNumber - order number
+   * @param trailer2txt - trailer2 text
+   * @param extendedTerms - onject containing revision. Must contain at least a waiting or locked status revision
    */
   constructor(strategyType: string,
-              securityType: SecurityType,
+              securityType: OrderSecurityType,
               orderNumber: string,
               trailer2txt: string,
               extendedTerms: {[key: string]: OrderExtendedTerms}) {
+    if (!((OrderRevisionType.AWAITING_REVIEW in extendedTerms) ||
+          (OrderRevisionType.UNDER_REVIEW in extendedTerms)))
+      throw new Error ('Order: cannot create order; extended terms must contain a waiting or locked revision');
 
     this.strategyType = strategyType;
     this.securityType = securityType;
@@ -104,20 +119,22 @@ export default class Order implements OrderInterface {
     });
   }
 
-  /**s
-   *
-   * @param revision
-   * @param extendedTerms
-   * @returns {boolean}
+  /**
+   * @param revision type being added
+   * @param extendedTerms being added for revision
+   * @returns {boolean} true if addition is succesfull
+   *                    false if revision type already existing in order
+   *                    false if revision is LOCKED and timestamp doesn't fall without allowed threshold of WAITING revision
    */
-  addRevision(revision: RevisionType, extendedTerms: OrderExtendedTerms): boolean {
+  addRevision(revision: OrderRevisionType, extendedTerms: OrderExtendedTerms): boolean {
     if (revision in this.extendedTerms)
       return false;
 
-    if (revision == RevisionType.UNDER_REVIEW) {
-      var waitingTimestamp: string = this.getRevision(RevisionType.AWAITING_REVIEW).timestamp;
-      var lockedTimestamp: string = extendedTerms.timestamp;
-      var timeDiff: number = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
+    if (revision == OrderRevisionType.UNDER_REVIEW) {
+      const waitingTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
+      const lockedTimestamp: string = extendedTerms.timestamp;
+      const timeDiff: number = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
+
       if ((timeDiff < 0) || (timeDiff > 60*2))
         return false;
     }
@@ -127,46 +144,46 @@ export default class Order implements OrderInterface {
   }
 
   /**
-   * Set the channel from the trailer text
-   * @param revision has the channel in the format of CH.*
+   * Get the channel from the trailer text
+   * @param revision type to retrieve
+   * @return {string} channel of revision in the format of CH.*
    */
-  getChannelFromTrailer(revision: RevisionType): string {
-    var trailer2txt = this.trailer2txt;
-    var i: number = trailer2txt.indexOf('CH.');
+  getChannelFromTrailer(revision: OrderRevisionType): string {
+    const trailer2txt = this.trailer2txt;
+    const i: number = trailer2txt.indexOf('CH.');
+
     return trailer2txt.substring(i, trailer2txt.indexOf('/', i));
   }
 
   /**
-   * @returns {MarketHours} if market hours were open or closed at time order went into waiting status. Doesn't account for holidays
+   * @returns {OrderMarketHours} if market hours were open or closed for waiting revision. Doesn't account for holidays
    */
-  getOrderMarketHoursType(): MarketHours {
-    var d: Date = new Date(this.getRevision(RevisionType.AWAITING_REVIEW).timestamp);
+  getOrderMarketHoursType(): OrderMarketHours {
+    const d: Date = new Date(this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp);
 
     if (d.getHours() < 9 || d.getHours() >= 16)
-      return MarketHours.MARKETS_CLOSED;
+      return OrderMarketHours.MARKETS_CLOSED;
     else if (d.getHours() == 9 && d.getMinutes() < 30)
-      return MarketHours.MARKETS_CLOSED;
+      return OrderMarketHours.MARKETS_CLOSED;
     else if (d.getDay() == 6 || d.getDay() == 7)
-      return MarketHours.MARKETS_CLOSED;
+      return OrderMarketHours.MARKETS_CLOSED;
 
-    return MarketHours.MARKETS_OPEN;
+    return OrderMarketHours.MARKETS_OPEN;
   }
 
   /**
-   *
-   * @param revision
-   * @returns {OrderExtendedTerms} date of revision for status. format MM.DD.YYYY
+   * @param revision type to retrieve
+   * @returns {OrderExtendedTerms} data of revision
    */
-  getRevision(revision: RevisionType): OrderExtendedTerms {
+  getRevision(revision: OrderRevisionType): OrderExtendedTerms {
     return this.extendedTerms[revision];
   }
 
   /**
-   *
    * @param revision
-   * @returns {string} date of revision for status. format MM.DD.YYYY
+   * @returns {string} date of revision for status. Format MM.DD.YYYY
    */
-  getRevisionDate(revision: RevisionType): string {
+  getRevisionDate(revision: OrderRevisionType): string {
     //var revisionStr: string = Order.getRevisionTypeAsString(revision);
     if (!(revision in this.extendedTerms))
       return null;
@@ -181,45 +198,44 @@ export default class Order implements OrderInterface {
    * @param toRevision
    * @returns {number} of seconds between the final and initial timestamp
    */
-  getRevisionTimeDiff(fromRevision: RevisionType, toRevision: RevisionType): number {
-    var fromTimestamp: string = this.getRevision(RevisionType.AWAITING_REVIEW).timestamp;
-    var toTimestamp: string = this.getRevision(RevisionType.POST_REVIEW).timestamp;
+  getRevisionTimeDiff(fromRevision: OrderRevisionType, toRevision: OrderRevisionType): number {
+    const fromTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
+    const toTimestamp: string = this.getRevision(OrderRevisionType.POST_REVIEW).timestamp;
 
     return (new Date(toTimestamp).getTime() - new Date(fromTimestamp).getTime()) / 1000;
   }
 
   /**
    * @param revision
-   * @returns {string}
+   * @returns {string} representation of revision
    */
-  static getRevisionTypeAsString(revision: RevisionType): string {
+  static getRevisionTypeAsString(revision: OrderRevisionType): string {
     switch (revision) {
-      case RevisionType.CREATED:
+      case OrderRevisionType.CREATED:
         return 'CREATED';
-      case RevisionType.AWAITING_REVIEW:
+      case OrderRevisionType.AWAITING_REVIEW:
         return 'AWAITING_REVIEW';
-      case RevisionType.UNDER_REVIEW:
+      case OrderRevisionType.UNDER_REVIEW:
         return 'UNDER_REVIEW';
-      case RevisionType.POST_REVIEW:
+      case OrderRevisionType.POST_REVIEW:
         return 'POST_REVIEW';
     }
   }
 
   /**
-   *
-   * @param status
-   * @returns {RevisionType}
+   * @param status as string
+   * @returns {OrderRevisionType} representation of status
    */
-  static getStatusAsRevisionType(status: string): RevisionType {
+  static getStatusAsRevisionType(status: string): OrderRevisionType {
     switch (status) {
       case 'PLACED':
-        return RevisionType.CREATED;
+        return OrderRevisionType.CREATED;
       case 'WAITING':
-        return RevisionType.AWAITING_REVIEW;
+        return OrderRevisionType.AWAITING_REVIEW;
       case 'LOCKED':
-        return RevisionType.UNDER_REVIEW;
+        return OrderRevisionType.UNDER_REVIEW;
       default:
-        return RevisionType.POST_REVIEW;
+        return OrderRevisionType.POST_REVIEW;
     }
   }
 
@@ -228,6 +244,6 @@ export default class Order implements OrderInterface {
    * @returns {string} that uniquely indentifies the order
    */
   getUniqueID(): string {
-    return this.orderNumber + this.getRevisionDate(RevisionType.CREATED);
+    return this.orderNumber + this.getRevisionDate(OrderRevisionType.CREATED);
   }
 }

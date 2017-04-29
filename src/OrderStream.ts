@@ -1,7 +1,7 @@
 /**
  * Created by Tom on 2017-03-25.
  */
-import {OrderExtendedTerms, RevisionType} from "./Order";
+import {OrderExtendedTerms, OrderRevisionType} from "./Order";
 import Order from './Order';
 
 const fastCsv = require("fast-csv");
@@ -14,71 +14,73 @@ export interface OrderStreamInterface {
 }
 
 
+
 export default class OrderStream {
   orders: { [key: string]: Order };
 
+  /**
+   * @param callback function to call once all orders are loaded
+   */
   constructor(callback: any) {
     this.orders = {};
-    this.loadWaitingOrders(callback);
+
+    const loadLockedOrdersComplete = function() {
+      callback();
+    };
+
+    const loadWaitingOrdersComplete = function() {
+      this.loadLockedOrders(loadLockedOrdersComplete);
+    };
+
+    this.loadWaitingOrders(loadWaitingOrdersComplete);
   }
 
   /**
-   * Run simulation with pushing all waiting orders and then popping them
+   * @param order
    */
-  protected loadWaitingOrders(callback: any) {
-    fastCsv
-            .fromPath(inputOrdersFile, {headers: true})
-            .on('data', order => {
-              this.createOrder(order);
-            })
-            .on('end', () => {
-              this.loadLockedOrders(callback);
-            });
+  protected addLockedRevision(csvOrder: any): void {
+    var newOrder: Order = OrderStream.createOrderFromCSV(csvOrder);
+    var orderID: string = newOrder.getUniqueID();
+
+    if ((orderID in this.orders) &&
+        (this.orders[orderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
+      delete this.orders[orderID];
+    else
+      console.log('Could not add revision'); // TODO: refactor to throw exception
   }
 
   /**
-   * Loads locked orders to pass
+   * @param csvOrder object loaded from csv file
    */
-  protected loadLockedOrders(callback: any) {
-    fastCsv
-      .fromPath(inputLockedFile, {headers: true})
-      .on('data', order => {
-        this.addLockedRevision(order);
-      })
-      .on('end', () => {
-        callback();
-      });
-  }
+  protected createOrder(csvOrder: any): void {
+    var newOrder = OrderStream.createOrderFromCSV(csvOrder);
 
-  protected createOrder(order: any): void {
-    var newOrder = this.createOrderFromCSV(order);
+    if (newOrder.getUniqueID() in this.orders) {
+      console.log('duplicate create order'); //TODO: refactor to throw exception
+      return;
+    }
+
     this.orders[newOrder.getUniqueID()]= newOrder;
   }
 
-  protected addLockedRevision(order: any): void {
-    var newOrder: Order = this.createOrderFromCSV(order);
-    var orderID: string = newOrder.getUniqueID();
-
-    if ((orderID in this.orders) && (this.orders[orderID].addRevision(RevisionType.UNDER_REVIEW, newOrder.extendedTerms[RevisionType.UNDER_REVIEW])))
-      delete this.orders[orderID];
-    else
-      console.log(newOrder);
-  }
-
-  protected createOrderFromCSV(order: any): Order {
-    var revision: RevisionType;
+  /**
+   * @param order object loaded from csv file
+   * @return {Order} object representation of order
+   */
+  static createOrderFromCSV(order: any): Order {
+    var revision: OrderRevisionType;
     var extendedTerms: { [key: string]: OrderExtendedTerms } = {};
 
     switch (order['ORDER_ITEM_STAT_CD1']) {
       case 'WAITING':
-        revision = RevisionType.AWAITING_REVIEW;
+        revision = OrderRevisionType.AWAITING_REVIEW;
         break;
       case 'LOCKED':
-        revision = RevisionType.UNDER_REVIEW;
+        revision = OrderRevisionType.UNDER_REVIEW;
         break;
     }
 
-    extendedTerms[RevisionType.CREATED] = {
+    extendedTerms[OrderRevisionType.CREATED] = {
       accountRRCode: undefined,
       actionType: undefined,
       channel: undefined,
@@ -102,7 +104,7 @@ export default class OrderStream {
       timestamp: order['EFFECTIVE_TS1']
     };
 
-    extendedTerms[RevisionType.POST_REVIEW] = {
+    extendedTerms[OrderRevisionType.POST_REVIEW] = {
       accountRRCode: undefined,
       actionType: undefined,
       channel: undefined,
@@ -114,7 +116,35 @@ export default class OrderStream {
       timestamp: order['EFFECTIVE_TS2'],
     };
 
-    return new Order(order['ORDER_STRTGY_CD'], order['SECRTY_TYPE_CD'], order['ORDER_NUM'],
-                     order['FTNOTE_TRAIL_2_TXT'], extendedTerms);
+    return new Order(order['ORDER_STRTGY_CD'], order['SECRTY_TYPE_CD'],
+                     order['ORDER_NUM'], order['FTNOTE_TRAIL_2_TXT'], extendedTerms);
+  }
+
+  /**
+   * @param callback function to call once async load completes
+   */
+  protected loadLockedOrders(callback: any) {
+    fastCsv
+      .fromPath(inputLockedFile, {headers: true})
+      .on('data', csvOrder => {
+        this.addLockedRevision(csvOrder);
+      })
+      .on('end', () => {
+        callback();
+      });
+  }
+
+  /**
+   * @param callback function to call once async load completes
+   */
+  protected loadWaitingOrders(callback: any) {
+    fastCsv
+      .fromPath(inputOrdersFile, {headers: true})
+      .on('data', csvOrder => {
+        this.createOrder(csvOrder);
+      })
+      .on('end', () => {
+        callback();
+      });
   }
 }
