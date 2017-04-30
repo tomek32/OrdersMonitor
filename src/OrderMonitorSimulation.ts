@@ -11,9 +11,9 @@ const fs = require('fs');
 const json2csv = require('json2csv');
 const writeJsonFile = require('write-json-file');
 
-const orderReportJson = './scratch/orders_report.json';
-const exceptionReportJson = './scratch/order_exceptions.json';
-const exceptionReportCsv = './scratch/order_exceptions.csv';
+const orderReportJson = './output/orders_report.json';
+const exceptionReportJson = './output/order_exceptions.json';
+const exceptionReportCsv = './output/order_exceptions.csv';
 
 const orderExceptionMaxSecs: number = 60 * 10;
 const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
@@ -46,4 +46,4 @@ function exportReports() {
 }
 
 /** Turned off locked orders. Locked orders input file has too many false positives to reliably report on */
-const orderStream: OrderStream = new OrderStream(simulationCallback, false);
+const orderStream: OrderStream = new OrderStream(simulationCallback, true);

@@ -6,8 +6,8 @@ import Order from './Order';
 
 const fastCsv = require("fast-csv");
 
-const inputOrdersFile = './resources/orders.csv';
-const inputLockedFile = './resources/locked.csv';
+const inputOrdersFile = './resources/orders_sample.csv';
+const inputLockedFile = './resources/locked_sample.csv';
 
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
@@ -125,7 +125,9 @@ export default class OrderStream {
     fastCsv
       .fromPath(inputLockedFile, {headers: true})
       .on('data', csvOrder => {
-        this.addLockedRevision(csvOrder);
+        try {
+          this.addLockedRevision(csvOrder);
+        } catch (err) {}
       })
       .on('end', () => {
         callback();
