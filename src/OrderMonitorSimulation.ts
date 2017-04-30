@@ -45,5 +45,5 @@ function exportReports() {
   writeJsonFile(orderReportJson, json).then(() => {});
 }
 
-/** Turned off locked orders. Locked orders input file has too many false positives to reliably report on */
+/** NOTE: Production locked orders input file has too many false positives to reliably report on */
 const orderStream: OrderStream = new OrderStream(simulationCallback, true);
