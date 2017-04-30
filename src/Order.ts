@@ -58,7 +58,7 @@ export interface OrderExtendedTerms {
   nextDayInd: boolean;
   orderType: string;
   status: string;
-  strategyPrice: OrderStrategyPriceType;
+  strategyOrderType: string;
   timestamp: string;
 
 }

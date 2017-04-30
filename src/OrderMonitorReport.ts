@@ -4,7 +4,8 @@
 import Order from './Order';
 import {OrderMarketHours, OrderRevisionType} from './Order';
 
-const orderExceptionMaxSecs: number = 60 * 10;
+const OrderExceptionMaxSecs: number = 60 * 10;
+const ReportOrigNumOfStrategyOrders: boolean = true;
 
 export interface reportResource {
   numOrders: number;
@@ -37,7 +38,7 @@ export interface OrderMonitorReportInterface {
 
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
-  reportOrigNumOfStrategyOrders: number;
+  reportOrigNumOfStrategyOrders: boolean;
   includeMarketHours: OrderMarketHours;
   orderExceptionMaxSecs: number;
 
@@ -46,9 +47,10 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param orderExceptionMaxSecs default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
    */
   constructor(includeMarketHours: OrderMarketHours = OrderMarketHours.ALL,
-              orderExceptionMaxSecs: number = orderExceptionMaxSecs) {
+              orderExceptionMaxSecs: number = OrderExceptionMaxSecs,
+              reportOrigNumOfStrategyOrders: boolean = ReportOrigNumOfStrategyOrders) {
     this.report = {};
-    this.reportOrigNumOfStrategyOrders = true;
+    this.reportOrigNumOfStrategyOrders = reportOrigNumOfStrategyOrders;
     this.includeMarketHours = includeMarketHours;
     this.orderExceptionMaxSecs = orderExceptionMaxSecs;
   }
@@ -64,12 +66,19 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     Object.keys(formattedReport).forEach(key => {
       const d:Date = new Date(formattedReport[key].longestWaitingPlusApprovedSec);
 
+      // TODO: not supported yet
+      /**
       if (!this.reportOrigNumOfStrategyOrders) {
+        formattedReport[key].numOrders = formattedReport[key].numOrders -
+                                         formattedReport[key].numOrdersByStrategy.OCO/2 -
+                                         formattedReport[key].numOrdersByStrategy.OTA/2 -
+                                         formattedReport[key].numOrdersByStrategy.FTO/3 -
+                                         formattedReport[key].numOrdersByStrategy.MLO/2;
         formattedReport[key].numOrdersByStrategy.OCO /= 2;
         formattedReport[key].numOrdersByStrategy.OTA /= 2;
         formattedReport[key].numOrdersByStrategy.FTO /= 3;
         formattedReport[key].numOrdersByStrategy.MLO /= 2;
-      }
+      }*/
 
       // TODO: don't return this until we get locked status
       formattedReport[key].longestWaitingSec = undefined;
@@ -207,6 +216,17 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         break;
       case 'TRAILING_STOP_LIMIT':
         this.report[orderDate].numOrdersByOrderType.TRAILING_STOP_LIMIT++;
+        break;
+    }
+
+    switch (order.getRevision(OrderRevisionType.AWAITING_REVIEW).strategyOrderType) {
+      case 'MARKET':
+        this.report[orderDate].numOrdersByOrderType.MARKET++;
+        break;
+      case 'NET_DEBIT':
+      case 'NET_CREDIT':
+      case 'EVEN':
+        this.report[orderDate].numOrdersByOrderType.LIMIT++;
         break;
     }
 

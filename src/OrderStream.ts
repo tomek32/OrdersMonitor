@@ -30,7 +30,8 @@ export default class OrderStream {
         this.loadLockedOrders(() => {
           callback();
         });
-      }
+      } else
+        callback();
     });
   }
 
@@ -65,8 +66,8 @@ export default class OrderStream {
    * @return {Order} object representation of order
    */
   static createOrderFromCSV(order: any): Order {
-    const revision: OrderRevisionType;
-    const extendedTerms: { [key: string]: OrderExtendedTerms } = {};
+    var revision: OrderRevisionType;
+    var extendedTerms: { [key: string]: OrderExtendedTerms } = {};
 
     switch (order['ORDER_ITEM_STAT_CD1']) {
       case 'WAITING':
@@ -85,7 +86,7 @@ export default class OrderStream {
       nextDayInd: undefined,
       orderType: undefined,
       status: undefined,
-      strategyPrice: undefined,
+      strategyOrderType: undefined,
       timestamp: order['ORDER_ITEM_CREATION_TS']
     };
 
@@ -97,7 +98,7 @@ export default class OrderStream {
       nextDayInd: order['NEXT_DAY_ORDER_IND'],
       orderType: order['ORDER_TYPE_CD'],
       status: order['ORDER_ITEM_STAT_CD1'],
-      strategyPrice: order['ORDER_PRICE_PLAN_CD'],
+      strategyOrderType: order['ORDER_PRICE_PLAN_CD'],
       timestamp: order['EFFECTIVE_TS1']
     };
 
@@ -109,7 +110,7 @@ export default class OrderStream {
       nextDayInd: undefined,
       orderType: undefined,
       status: order['ORDER_ITEM_STAT_CD2'],
-      strategyPrice: undefined,
+      strategyOrderType: undefined,
       timestamp: order['EFFECTIVE_TS2'],
     };
 
