@@ -98,7 +98,7 @@ export default class Order implements OrderInterface {
    * @param securityType - security type
    * @param orderNumber - order number
    * @param trailer2txt - trailer2 text
-   * @param extendedTerms - onject containing revision. Must contain at least a waiting or locked status revision
+   * @param extendedTerms - object containing revision. Must contain at least a waiting or locked status revision
    */
   constructor(strategyType: string,
               securityType: OrderSecurityType,
@@ -107,7 +107,7 @@ export default class Order implements OrderInterface {
               extendedTerms: {[key: string]: OrderExtendedTerms}) {
     if (!((OrderRevisionType.AWAITING_REVIEW in extendedTerms) ||
           (OrderRevisionType.UNDER_REVIEW in extendedTerms)))
-      throw new Error ('Order: cannot create order; extended terms must contain a waiting or locked revision');
+      throw new Error ('Cannot create order; extended terms must contain a waiting or locked revision');
 
     this.strategyType = strategyType;
     this.securityType = securityType;
@@ -139,13 +139,13 @@ export default class Order implements OrderInterface {
 
       timeDiff = (new Date(lockedTimestamp).getTime() - new Date(postReviewTimestamp).getTime()) / 1000;
       if (timeDiff => 0) {
-        console.log('   Revision time is after the post review timestamp');
+        console.log('   Cannot add revision. Under review timestamp is after the post review timestamp');
         return false;
       }
 
       timeDiff = (new Date(lockedTimestamp).getTime() - new Date(waitingTimestamp).getTime()) / 1000;
       if ((timeDiff < 0) || (timeDiff > orderExceptionMaxSecs)) {
-        console.log('   Revision time difference is ' + timeDiff + '. Max time difference allowed is: ' + orderExceptionMaxSecs);
+        console.log('   Cannot add revision. Revision time difference is ' + timeDiff + '. Max time difference allowed is: ' + orderExceptionMaxSecs);
         return false;
       }
     }
@@ -195,7 +195,6 @@ export default class Order implements OrderInterface {
    * @returns {string} date of revision for status. Format MM.DD.YYYY
    */
   getRevisionDate(revision: OrderRevisionType): string {
-    //var revisionStr: string = Order.getRevisionTypeAsString(revision);
     if (!(revision in this.extendedTerms))
       return null;
 
