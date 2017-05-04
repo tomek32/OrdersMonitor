@@ -1,0 +1,128 @@
+{
+	"03.02.2017": {
+		"numOrders": 10,
+		"numOrdersByChannel": {
+			"WEB": 1,
+			"WBR": 5,
+			"ATT": 0,
+			"MBL": 4,
+			"TMAX": 0,
+			"TALK": 0,
+			"TBL": 0,
+			"UNKNOWN": 0
+		},
+		"numOrdersByRRCode": {
+			"RMPA": 1,
+			"RMP1": 3,
+			"RMP2": 0,
+			"RMP3": 0,
+			"RMP4": 0,
+			"RM": 6
+		},
+		"numOrdersByStrategy": {
+			"SPL": 4,
+			"OCO": 2,
+			"OTA": 2,
+			"FTO": 2,
+			"MLO": 0
+		},
+		"numOrdersByOrderType": {
+			"MARKET": 0,
+			"LIMIT": 6,
+			"STOP_MARKET": 1,
+			"STOP_LIMIT": 1,
+			"TRAILING_STOP_MARKET": 1,
+			"TRAILING_STOP_LIMIT": 1
+		},
+		"numOrdersByCustom": {
+			"ATT_RMP1": 0
+		},
+		"longestWaitingPlusApprovedOrder": null,
+		"orderExceptions": {},
+		"longestWaitingPlusApproved": "19h:00m:00s"
+	},
+	"03.03.2017": {
+		"numOrders": 10,
+		"numOrdersByChannel": {
+			"WEB": 0,
+			"WBR": 5,
+			"ATT": 2,
+			"MBL": 0,
+			"TMAX": 1,
+			"TALK": 1,
+			"TBL": 1,
+			"UNKNOWN": 0
+		},
+		"numOrdersByRRCode": {
+			"RMPA": 0,
+			"RMP1": 1,
+			"RMP2": 1,
+			"RMP3": 1,
+			"RMP4": 1,
+			"RM": 6
+		},
+		"numOrdersByStrategy": {
+			"SPL": 8,
+			"OCO": 0,
+			"OTA": 0,
+			"FTO": 0,
+			"MLO": 2
+		},
+		"numOrdersByOrderType": {
+			"MARKET": 4,
+			"LIMIT": 8,
+			"STOP_MARKET": 0,
+			"STOP_LIMIT": 0,
+			"TRAILING_STOP_MARKET": 0,
+			"TRAILING_STOP_LIMIT": 0
+		},
+		"numOrdersByCustom": {
+			"ATT_RMP1": 1
+		},
+		"longestWaitingPlusApprovedOrder": null,
+		"orderExceptions": {},
+		"longestWaitingPlusApproved": "19h:00m:00s"
+	},
+	"totals": {
+		"numOrders": 20,
+		"numOrdersByChannel": {
+			"WEB": 1,
+			"WBR": 10,
+			"ATT": 2,
+			"MBL": 4,
+			"TMAX": 1,
+			"TALK": 1,
+			"TBL": 1,
+			"UNKNOWN": 0
+		},
+		"numOrdersByRRCode": {
+			"RMPA": 1,
+			"RMP1": 4,
+			"RMP2": 1,
+			"RMP3": 1,
+			"RMP4": 1,
+			"RM": 12
+		},
+		"numOrdersByStrategy": {
+			"SPL": 24,
+			"OCO": 2,
+			"OTA": 2,
+			"FTO": 2,
+			"MLO": 2
+		},
+		"numOrdersByOrderType": {
+			"MARKET": 4,
+			"LIMIT": 14,
+			"STOP_MARKET": 1,
+			"STOP_LIMIT": 1,
+			"TRAILING_STOP_MARKET": 1,
+			"TRAILING_STOP_LIMIT": 1
+		},
+		"numOrdersByCustom": {
+			"ATT_RMP1": 1
+		},
+		"numOrderPastMaxSecs": 0,
+		"numOrphasedLockedOrders": 0,
+		"longestWaitingPlusApproved": "19h:00m:00s"
+	}
+}

@@ -2,87 +2,72 @@
  * Created by Tom on 2017-03-18.
  */
 import Order from './Order';
-import {MarketHours} from "./Order";
+import {OrderMarketHours, OrderRevisionType} from "./Order";
 import OrderMonitorReport from './OrderMonitorReport';
-const FastPriorityQueue: any = require('fastpriorityqueue');
-//const heap: any = require('heap');
-//import a from 'heap';
 
+const FastPriorityQueue: any = require('fastpriorityqueue');
 
 export interface OrderMonitorInterface {
+  //lockedOrders: {[key: string]: any};
   orderQueue: any;
   report: OrderMonitorReport;
 
-  //TODO: fix compiler warnings on optional parameter
-  //constructor(priorityWaitSecs?: number);
+  //addLockedRevision(order: any): void;
   getReport(): any;
-  pushOrder(order: any): void;
+  pushOrder(order: Order): void;
   popOrder(): void;
 }
 
 
-//////
-// OrderMonitor Class
 export default class OrderMonitor implements OrderMonitorInterface {
+  //lockedOrders: {[key: string]: any};
+  otherChannelMaxWaitSec: number;
   orderQueue: any;
   report: OrderMonitorReport;
-  priorityWaitSecs: number;
 
 
-  //////
-  // Constructor
-  constructor(includeMarketHours?: MarketHours, missedWaitingOrderSec?: number, priorityWaitSecs?: number, prioritizationAlgorith?: any) {
-    // this.orderQueue = new Heap();
-    this.orderQueue = new FastPriorityQueue(prioritizationAlgorith);
-    this.report = new OrderMonitorReport(includeMarketHours, missedWaitingOrderSec);
-    this.priorityWaitSecs = priorityWaitSecs;
+  /**
+   *
+   * @param includeMarketHours - default is to include all. set to restrict which orders are included
+   * @param orderExceptionMaxSecs
+   * @param otherChannelMaxWaitSec
+   */
+  constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: OrderMarketHours, orderExceptionMaxSecs?: number) {
+    //this.lockedOrders = {};
+    this.orderQueue = new FastPriorityQueue();
+    this.report = new OrderMonitorReport(includeMarketHours, orderExceptionMaxSecs);
+
+    // TODO: this value isn't being used yet
+    this.otherChannelMaxWaitSec = otherChannelMaxWaitSec;
   }
 
-  //////
-  // Print report
+  /**
+   * @returns {any} current report
+   */
   getReport(): any {
     return this.report.getReport();
   }
 
-
-  //////
-  // Push order onto queue
-  pushOrder(order: any): void {
-    var newOrder : Order = new Order();
-
-    newOrder.accountRRCode = order['ACCT_BOB_CD'];
-    newOrder.orderNumber = order['ORDER_NUM'];
-    newOrder.creationTimestamp = order['ORDER_ITEM_CREATION_TS'];
-    newOrder.initialTimestamp = order['EFFECTIVE_TS1'];
-    newOrder.initialStatus = order['ORDER_ITEM_STAT_CD1'];
-    newOrder.finalTimestamp = order['EFFECTIVE_TS2'];
-    newOrder.finalStatus = order['ORDER_ITEM_STAT_CD2'];
-    newOrder.strategyType = order['ORDER_STRTGY_CD'];
-    newOrder.strategyPrice = order['ORDER_PRICE_PLAN_CD'];
-    newOrder.securityType = order['SECRTY_TYPE_CD'];
-    newOrder.actionType = order['ACTION_TYPE_CD'];
-    newOrder.orderType = order['ORDER_TYPE_CD'];
-    newOrder.durationType = order['DURATN_TYPE_CD'];
-    newOrder.nextDayInd = order['NEXT_DAY_ORDER_IND'];
-
-    var channel: string = order['FTNOTE_TRAIL_2_TXT'];
-    var i: number = channel.indexOf('CH.');
-    newOrder.channel = channel.substring(i, channel.indexOf('/', i));
-
-    this.orderQueue.add(newOrder);
-    this.report.updateReportForPushOrder(newOrder);
+  /**
+   * Pushes order onto queue
+   * @param order
+   */
+  pushOrder(order: Order): void {
+    //var flag: boolean = this.findAndAssignLockedStatus(newOrder);
+    this.orderQueue.add(order);
+    this.report.recordPushOrder(order);
   }
 
-
-  //////
-  // Pops off the top order and logs to the report
-  // Return true if an order was removed, false if otherwise queue is empty
+  /**
+   * Pops the top order of the queue
+   * @returns {boolean} true if an order was removed, false if otherwise queue is empty
+   */
   popOrder(): boolean {
     var order: Order;
 
     order = this.orderQueue.peek();
     if (order) {
-        this.report.updateReportForPopOrder(order);
+        this.report.recordPopOrder(order);
         this.orderQueue.poll();
         return true;
     }
