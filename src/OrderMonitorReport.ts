@@ -15,13 +15,11 @@ export interface reportResource {
   numOrdersByOrderType: {MARKET: number, LIMIT: number, STOP_MARKET: number, STOP_LIMIT: number, TRAILING_STOP_MARKET: number, TRAILING_STOP_LIMIT: number};
   numOrdersByCustom: {ATT_RMP1: number};
 
-  longestWaitingSec: number;
-  longestWaitingPlusApprovedSec: number;
-  longestWaitingPlusApprovedOrder: Order;
+  longestInAwaitingReviewOrder: {waitingSec: number, order: Order};
+  longestAwaitingPlusUnderReviewOrder: {waitingSec: number, order: Order}
 
-  numOrderPastMaxSecs: number;
-  numOrphasedLockedOrders: number;
-  orderExceptions: {maxSecs: Order[], orphanedLocked: Order[]};
+  orderExceptions: {aboveMaxSecs: Order[], orphanedLocked: Order[]};
+  awaitingReviewExceptions: {PastPostReviewTimestampOrders: Order[]};
 }
 
 export interface OrderMonitorReportInterface {
@@ -105,12 +103,12 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
     // Longest waited time between 9:30am and 4pm
     if (date in this.report) {
-      const currLongestApproved = this.report[date].longestWaitingPlusApprovedSec;
+      const currLongestApproved = this.report[date].longestAwaitingPlusUnderReviewOrder.waitingSec;
       const newTimeToApprove:number = order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW);
 
       if (newTimeToApprove > currLongestApproved) {
-        this.report[date].longestWaitingPlusApprovedSec = newTimeToApprove;
-        this.report[date].longestWaitingPlusApprovedOrder = order;
+        this.report[date].longestAwaitingPlusUnderReviewOrder.waitingSec = newTimeToApprove;
+        this.report[date].longestAwaitingPlusUnderReviewOrder.order = order;
       }
 
       this.recordOrderExceptions(order);
@@ -249,13 +247,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       numOrdersByOrderType: {MARKET: 0, LIMIT: 0, STOP_MARKET: 0, STOP_LIMIT: 0, TRAILING_STOP_MARKET: 0, TRAILING_STOP_LIMIT: 0},
       numOrdersByCustom: {ATT_RMP1: 0},
 
-      longestWaitingSec: 0,
-      longestWaitingPlusApprovedSec: 0,
-      longestWaitingPlusApprovedOrder: null,
+      longestInAwaitingReviewOrder: {waitingSec: 0, order: null},
+      longestAwaitingPlusUnderReviewOrder: {waitingSec: 0, order: null},
 
-      numOrderPastMaxSecs: (key == 'totals') ? 0 : undefined,
-      numOrphasedLockedOrders: (key == 'totals') ? 0 : undefined,
-      orderExceptions: {maxSecs: [], orphanedLocked: []}
+      orderExceptions: {aboveMaxSecs: [], orphanedLocked: []},
+      awaitingReviewExceptions: {PastPostReviewTimestampOrders: []}
     };
   }
 
@@ -268,7 +264,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         return;
 
     if (order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW) > this.orderExceptionMaxSecs) {
-      this.report[order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW)].orderExceptions.maxSecs.push(order);
+      this.report[order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW)].orderExceptions.aboveMaxSecs.push(order);
     }
   }
 
@@ -314,26 +310,29 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
         this.report['totals'].numOrdersByCustom.ATT_RMP1 += this.report[key].numOrdersByCustom.ATT_RMP1;
 
-        if (this.report[key].longestWaitingSec > this.report['totals'].longestWaitingSec)
-          this.report['totals'].longestWaitingSec = this.report[key].longestWaitingSec;
+        if (this.report[key].longestInAwaitingReviewOrder.waitingSec > this.report['totals'].longestInAwaitingReviewOrder.waitingSec)
+          this.report['totals'].longestInAwaitingReviewOrder.waitingSec = this.report[key].longestInAwaitingReviewOrder.waitingSec;
 
-        if (this.report[key].longestWaitingPlusApprovedSec > this.report['totals'].longestWaitingPlusApprovedSec) {
-          this.report['totals'].longestWaitingPlusApprovedSec = this.report[key].longestWaitingPlusApprovedSec;
+        if (this.report[key].longestAwaitingPlusUnderReviewOrder.waitingSec > this.report['totals'].longestAwaitingPlusUnderReviewOrder.waitingSec) {
+          this.report['totals'].longestAwaitingPlusUnderReviewOrder.waitingSec = this.report[key].longestAwaitingPlusUnderReviewOrder.waitingSec;
         }
 
-        // Move max sec exceptions to totals
-        this.report[key].orderExceptions.maxSecs.forEach(order => {
-          this.report['totals'].orderExceptions.maxSecs.push(order);
+        // Move orders above max sec exceptions to totals
+        this.report[key].orderExceptions.aboveMaxSecs.forEach(order => {
+          this.report['totals'].orderExceptions.aboveMaxSecs.push(order);
         });
         this.report['totals'].numOrderPastMaxSecs += this.report[key].orderExceptions.maxSecs.length;
-        this.report[key].orderExceptions.maxSecs = undefined;
+        this.report[key].orderExceptions.aboveMaxSecs = undefined;
 
-        // Move missing locked revisions to totals
+        // Move orphaned locked revisions to totals
         this.report[key].orderExceptions.orphanedLocked.forEach(order => {
           this.report['totals'].orderExceptions.orphanedLocked.push(order);
         });
         this.report['totals'].numOrphasedLockedOrders += this.report[key].orderExceptions.orphanedLocked.length;
         this.report[key].orderExceptions.orphanedLocked = undefined;
+
+        // Move revisions with tiemstamps past the post review timestamp to totals
+
 
         this.report['totals'].longestWaitingPlusApprovedOrder = undefined;
       }
