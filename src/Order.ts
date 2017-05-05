@@ -106,13 +106,15 @@ export default class Order implements OrderInterface {
               trailer2txt: string,
               extendedTerms: {[key: string]: OrderExtendedTerms}) {
     if (!((OrderRevisionType.AWAITING_REVIEW in extendedTerms) ||
-          (OrderRevisionType.UNDER_REVIEW in extendedTerms)))
-      throw new Error ('Cannot create order; extended terms must contain a waiting or locked revision');
+          (OrderRevisionType.UNDER_REVIEW in extendedTerms))) {
+      console.log('Cannot create order; extended terms must contain a waiting or locked revision');
+      throw new Error('Cannot create order; extended terms must contain a waiting or locked revision');
+    }
 
-    this.strategyType = strategyType;
+    this.strategyType = strategyType.trim();
     this.securityType = securityType;
-    this.orderNumber = orderNumber;
-    this.trailer2txt = trailer2txt;
+    this.orderNumber = orderNumber.trim();
+    this.trailer2txt = trailer2txt.trim();
     this.extendedTerms = extendedTerms;
 
     Object.keys(this.extendedTerms).forEach(key => {
@@ -160,10 +162,15 @@ export default class Order implements OrderInterface {
    * @return {string} channel of revision in the format of CH.*
    */
   getChannelFromTrailer(revision: OrderRevisionType): string {
-    const trailer2txt = this.trailer2txt;
-    const i: number = trailer2txt.indexOf('CH.');
+    const i: number = this.trailer2txt.indexOf('CH.');
+    if (i == -1)
+      return 'UNKNOWN';
 
-    return trailer2txt.substring(i, trailer2txt.indexOf('/', i));
+    var j: number = this.trailer2txt.indexOf('/', i);
+    if (j == -1)
+      j = this.trailer2txt.length;
+
+    return this.trailer2txt.substring(i, j);
   }
 
   /**
