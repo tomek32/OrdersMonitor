@@ -6,8 +6,8 @@ import Order from './Order';
 
 const fastCsv = require("fast-csv");
 
-const inputOrdersFile = './resources/orders_sample.csv';
-const inputLockedFile = './resources/locked_sample.csv';
+const inputOrdersFile = './resources/orders.csv';
+const inputLockedFile = './resources/locked.csv';
 
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
@@ -45,8 +45,10 @@ export default class OrderStream {
     if ((newOrderID in this.orders) &&
         (this.orders[newOrderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
       delete this.orders[newOrderID]; // TODO: temp, remove this delete
-    else
+    else {
+      console.log('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]);
       throw new Error('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]);
+    }
   }
 
   /**
@@ -55,9 +57,10 @@ export default class OrderStream {
   protected createOrder(csvOrder: any): void {
     const newOrder = OrderStream.createOrderFromCSV(csvOrder);
 
-    if (newOrder.getUniqueID() in this.orders)
+    if (newOrder.getUniqueID() in this.orders) {
+      console.log('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
       throw new Error('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
-
+    }
     this.orders[newOrder.getUniqueID()]= newOrder;
   }
 
