@@ -321,7 +321,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report[key].orderExceptions.aboveMaxSecs.forEach(order => {
           this.report['totals'].orderExceptions.aboveMaxSecs.push(order);
         });
-        this.report['totals'].numOrderPastMaxSecs += this.report[key].orderExceptions.maxSecs.length;
+        this.report['totals'].numOrderPastMaxSecs += this.report[key].orderExceptions.aboveMaxSecs.length;
         this.report[key].orderExceptions.aboveMaxSecs = undefined;
 
         // Move orphaned locked revisions to totals
