@@ -83,11 +83,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         formattedReport[key].numOrdersByStrategy.MLO /= 2;
       }*/
 
-      formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec);
+      formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec = OrderMonitorReport.getSecondsAsString(formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec);
       if (formattedReport[reportKey].longestInAwaitingReviewOrder.order)
         formattedReport[reportKey].longestInAwaitingReviewOrder.order = formattedReport[reportKey].longestInAwaitingReviewOrder.order.toString();
 
-      formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec);
+      formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getSecondsAsString(formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec);
       if (formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order)
         formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order = formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order.toString();
 
@@ -355,7 +355,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param date number of secs
    * @return {string} date in string format XXh:XXm:XXs
    */
-  static getDateAsString(date: number): string {
+  static getSecondsAsString(date: number): string {
     var d: Date = new Date(date);
 
     return ('0' + d.getHours()).slice(-2) + 'h:'
