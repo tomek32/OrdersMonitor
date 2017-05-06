@@ -85,11 +85,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
       formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec = OrderMonitorReport.getSecondsAsString(formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec);
       if (formattedReport[reportKey].longestInAwaitingReviewOrder.order)
-        formattedReport[reportKey].longestInAwaitingReviewOrder.order = formattedReport[reportKey].longestInAwaitingReviewOrder.order.toString();
+        formattedReport[reportKey].longestInAwaitingReviewOrder.order = formattedReport[reportKey].longestInAwaitingReviewOrder.order.getAsStringObject();
 
       formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getSecondsAsString(formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec);
       if (formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order)
-        formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order = formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order.toString();
+        formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order = formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order.getAsStringObject();
 
       Object.keys(formattedReport[reportKey].orderExceptions.aboveMaxSecs).forEach(orderKey => {
         formattedReport[reportKey].orderExceptions.aboveMaxSecs[orderKey] = formattedReport[reportKey].orderExceptions.aboveMaxSecs[orderKey].toString();

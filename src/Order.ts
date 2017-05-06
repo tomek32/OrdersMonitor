@@ -76,7 +76,7 @@ export interface OrderInterface {
   getRevisionDate(revision: OrderRevisionType): string;
   getRevisionTimeDiff(fromRevision: OrderRevisionType, toRevision: OrderRevisionType): number;
   getUniqueID(): string;
-  toString(): any;
+  getAsStringObject(): any;
 }
 
 const orderExceptionMaxSecs: number = 60 * 10;
@@ -232,7 +232,7 @@ export default class Order implements OrderInterface {
   /**
    * @returns this object ready for printing (enums converted to strings)
    */
-  toString(): any {
+  getAsStringObject(): any {
     var order: any = this;
 
     order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.CREATED)] = order.extendedTerms[OrderRevisionType.CREATED];
