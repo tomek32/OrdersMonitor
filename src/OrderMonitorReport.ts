@@ -24,8 +24,11 @@ export interface reportResource {
 
 export interface OrderMonitorReportInterface {
   report: {[key: string]: reportResource};
-  includeMarketHours: OrderMarketHours;
-  orderExceptionMaxSecs: number;
+  reportProperties: {
+    adjustForStrategyOrders: boolean,
+    includeMarketHours: OrderMarketHours,
+    orderExceptionMaxSecs: number;
+  };
 
   getReport(): any;
   recordPushOrder(order: Order, flag: boolean): void;
@@ -35,10 +38,12 @@ export interface OrderMonitorReportInterface {
 
 
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
-  report: {[key: string]: reportResource};
-  reportOrigNumOfStrategyOrders: boolean;
-  includeMarketHours: OrderMarketHours;
-  orderExceptionMaxSecs: number;
+  report: { [key: string]: reportResource };
+  reportProperties: {
+    adjustForStrategyOrders: boolean,
+    includeMarketHours: OrderMarketHours,
+    orderExceptionMaxSecs: number;
+  };
 
   /**
    * @param includeMarketHours default is 30 sec. set max amount of time before switching to regular FIFO
@@ -48,9 +53,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
               orderExceptionMaxSecs: number = OrderExceptionMaxSecs,
               reportOrigNumOfStrategyOrders: boolean = ReportOrigNumOfStrategyOrders) {
     this.report = {};
-    this.reportOrigNumOfStrategyOrders = reportOrigNumOfStrategyOrders;
-    this.includeMarketHours = includeMarketHours;
-    this.orderExceptionMaxSecs = orderExceptionMaxSecs;
+    this.reportProperties = {
+      adjustForStrategyOrders: reportOrigNumOfStrategyOrders,
+      includeMarketHours: includeMarketHours,
+      orderExceptionMaxSecs: orderExceptionMaxSecs
+    };
   }
 
   /**
@@ -62,8 +69,6 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
     this.updateOverallTotalsReport();
 
     Object.keys(formattedReport).forEach(key => {
-      const d:Date = new Date(formattedReport[key].longestWaitingPlusApprovedSec);
-
       // TODO: not supported yet
       /**
       if (!this.reportOrigNumOfStrategyOrders) {
@@ -78,14 +83,8 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         formattedReport[key].numOrdersByStrategy.MLO /= 2;
       }*/
 
-      // TODO: don't return this until we get locked status
-      formattedReport[key].longestWaitingSec = undefined;
-
-      // Convert to mm:ss format
-      formattedReport[key].longestWaitingPlusApprovedSec = undefined;
-      formattedReport[key].longestWaitingPlusApproved = ('0' + d.getHours()).slice(-2) + 'h:'
-                                                      + ('0' + d.getMinutes()).slice(-2) + 'm:'
-                                                      + ('0' + d.getSeconds()).slice(-2) + 's';
+      formattedReport[key].longestInAwaitingReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[key].longestInAwaitingReviewOrder.waitingSec);
+      formattedReport[key].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[key].longestAwaitingPlusUnderReviewOrder.waitingSec);
     });
 
     return formattedReport;
@@ -120,14 +119,14 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param order
    */
   recordPushOrder(order: Order): void {
-    if (this.includeMarketHours != OrderMarketHours.ALL && this.includeMarketHours != order.getOrderMarketHoursType())
+    if (this.reportProperties.includeMarketHours != OrderMarketHours.ALL && this.reportProperties.includeMarketHours != order.getOrderMarketHoursType())
       return;
 
     const orderDate:string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
 
     // Initialize the report if new date is detected
     if (!(orderDate in this.report))
-      this.initializeReport(orderDate);
+      this.addNewReportResource(orderDate);
 
     this.report[orderDate].numOrders++;
 
@@ -236,9 +235,9 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
   /**
    * Initialzie a report object
-   * @param key - string to indicate if report is for date (i.e. 03.17.2017) or  'totals'
+   * @param key - string to indicate if report is for date (i.e. 03.17.2017) or 'totals'
    */
-  protected initializeReport(key: string): void {
+  protected addNewReportResource(key: string): void {
     this.report[key] = {
       numOrders: 0,
       numOrdersByChannel: {WEB: 0, WBR: 0, ATT: 0, MBL: 0, TMAX: 0, TALK: 0, TBL: 0, UNKNOWN: 0},
@@ -259,11 +258,11 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * Record orders if time difference between the Waiting and Next Status (i.e. Open) is > order exception max seconds
    */
   protected recordOrderExceptions(order: Order): void {
-    // If status is Killed, it just means the order too a long time to review, we can disregard until we know the locked time
-    if (order.getRevision(OrderRevisionType.POST_REVIEW).status == 'KILLED')
+    // If awaiting review revision is missing and status is Killed, it means the order too a long time to review and we can disregard
+    if ((order.getRevision(OrderRevisionType.AWAITING_REVIEW) == null) && (order.getRevision(OrderRevisionType.POST_REVIEW).status == 'KILLED'))
         return;
 
-    if (order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW) > this.orderExceptionMaxSecs) {
+    if (order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW) > this.reportProperties.orderExceptionMaxSecs) {
       this.report[order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW)].orderExceptions.aboveMaxSecs.push(order);
     }
   }
@@ -273,7 +272,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    */
   protected updateOverallTotalsReport(): void {
     // TODO: add check to prevent consumer to pass total into the object
-    this.initializeReport('totals');
+    this.addNewReportResource('totals');
 
     for (const key of Object.keys(this.report)) {
       if (key != 'totals') {
@@ -309,7 +308,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report['totals'].numOrdersByOrderType.TRAILING_STOP_LIMIT += this.report[key].numOrdersByOrderType.TRAILING_STOP_LIMIT;
 
         this.report['totals'].numOrdersByCustom.ATT_RMP1 += this.report[key].numOrdersByCustom.ATT_RMP1;
-
+/**
         if (this.report[key].longestInAwaitingReviewOrder.waitingSec > this.report['totals'].longestInAwaitingReviewOrder.waitingSec)
           this.report['totals'].longestInAwaitingReviewOrder.waitingSec = this.report[key].longestInAwaitingReviewOrder.waitingSec;
 
@@ -329,13 +328,20 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
           this.report['totals'].orderExceptions.orphanedLocked.push(order);
         });
         this.report['totals'].numOrphasedLockedOrders += this.report[key].orderExceptions.orphanedLocked.length;
-        this.report[key].orderExceptions.orphanedLocked = undefined;
-
-        // Move revisions with tiemstamps past the post review timestamp to totals
-
-
-        this.report['totals'].longestWaitingPlusApprovedOrder = undefined;
+        this.report[key].orderExceptions.orphanedLocked = undefined;*/
       }
     }
+  }
+
+  /**
+   * @param date number of secs
+   * @return {string} date in string format XXh:XXm:XXs
+   */
+  static getDateAsString(date: number): string {
+    var d: Date = new Date(date);
+
+    return ('0' + d.getHours()).slice(-2) + 'h:'
+         + ('0' + d.getMinutes()).slice(-2) + 'm:'
+         + ('0' + d.getSeconds()).slice(-2) + 's';
   }
 }
