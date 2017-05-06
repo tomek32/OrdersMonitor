@@ -157,6 +157,27 @@ export default class Order implements OrderInterface {
   }
 
   /**
+   * @returns this object ready for printing (enums converted to strings)
+   */
+  getAsStringObject(): any {
+    var order: any = this;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.CREATED)] = order.extendedTerms[OrderRevisionType.CREATED];
+    order.extendedTerms[OrderRevisionType.CREATED] = undefined;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.AWAITING_REVIEW)] = order.extendedTerms[OrderRevisionType.AWAITING_REVIEW];
+    order.extendedTerms[OrderRevisionType.AWAITING_REVIEW] = undefined;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.UNDER_REVIEW)] = order.extendedTerms[OrderRevisionType.UNDER_REVIEW];
+    order.extendedTerms[OrderRevisionType.UNDER_REVIEW] = undefined;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.POST_REVIEW)] = order.extendedTerms[OrderRevisionType.POST_REVIEW];
+    order.extendedTerms[OrderRevisionType.POST_REVIEW] = undefined;
+
+    return order;
+  }
+
+  /**
    * Get the channel from the trailer text
    * @param revision type to retrieve
    * @return {string} channel of revision in the format of CH.*
@@ -227,27 +248,6 @@ export default class Order implements OrderInterface {
    */
   getUniqueID(): string {
     return this.orderNumber + this.getRevisionDate(OrderRevisionType.CREATED);
-  }
-
-  /**
-   * @returns this object ready for printing (enums converted to strings)
-   */
-  getAsStringObject(): any {
-    var order: any = this;
-
-    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.CREATED)] = order.extendedTerms[OrderRevisionType.CREATED];
-    order.extendedTerms[OrderRevisionType.CREATED] = undefined;
-
-    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.AWAITING_REVIEW)] = order.extendedTerms[OrderRevisionType.AWAITING_REVIEW];
-    order.extendedTerms[OrderRevisionType.AWAITING_REVIEW] = undefined;
-
-    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.UNDER_REVIEW)] = order.extendedTerms[OrderRevisionType.UNDER_REVIEW];
-    order.extendedTerms[OrderRevisionType.UNDER_REVIEW] = undefined;
-
-    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.POST_REVIEW)] = order.extendedTerms[OrderRevisionType.POST_REVIEW];
-    order.extendedTerms[OrderRevisionType.POST_REVIEW] = undefined;
-
-    return order;
   }
 
   /**

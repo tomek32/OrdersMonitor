@@ -4,7 +4,6 @@
 import Order from './Order';
 import {OrderMarketHours, OrderRevisionType} from './Order';
 
-const OrderExceptionMaxSecs: number = 60 * 10;
 const ReportOrigNumOfStrategyOrders: boolean = true;
 
 export interface reportResource {
@@ -16,10 +15,7 @@ export interface reportResource {
   numOrdersByCustom: {ATT_RMP1: number};
 
   longestInAwaitingReviewOrder: {waitingSec: number, order: Order};
-  longestAwaitingPlusUnderReviewOrder: {waitingSec: number, order: Order}
-
-  orderExceptions: {aboveMaxSecs: Order[], };
-  awaitingReviewExceptions: {pastPostReviewTimestampOrders: Order[], orphanedLocked: Order[]};
+  longestAwaitingPlusUnderReviewOrder: {waitingSec: number, order: Order};
 }
 
 export interface OrderMonitorReportInterface {
@@ -27,7 +23,6 @@ export interface OrderMonitorReportInterface {
   reportProperties: {
     adjustForStrategyOrders: boolean,
     includeMarketHours: OrderMarketHours,
-    orderExceptionMaxSecs: number;
   };
 
   getReport(): any;
@@ -36,27 +31,23 @@ export interface OrderMonitorReportInterface {
 }
 
 
-
 export default class OrderMonitorReport implements OrderMonitorReportInterface {
   report: { [key: string]: reportResource };
   reportProperties: {
     adjustForStrategyOrders: boolean,
     includeMarketHours: OrderMarketHours,
-    orderExceptionMaxSecs: number;
   };
 
   /**
    * @param includeMarketHours default is 30 sec. set max amount of time before switching to regular FIFO
-   * @param orderExceptionMaxSecs default is 10 min. set how long an order can be in WAITING status before it's recorded as an exception for investigation
+   * @param reportOrigNumOfStrategyOrders
    */
   constructor(includeMarketHours: OrderMarketHours = OrderMarketHours.ALL,
-              orderExceptionMaxSecs: number = OrderExceptionMaxSecs,
               reportOrigNumOfStrategyOrders: boolean = ReportOrigNumOfStrategyOrders) {
     this.report = {};
     this.reportProperties = {
       adjustForStrategyOrders: reportOrigNumOfStrategyOrders,
       includeMarketHours: includeMarketHours,
-      orderExceptionMaxSecs: orderExceptionMaxSecs
     };
   }
 
@@ -90,19 +81,6 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getSecondsAsString(formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec);
       if (formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order)
         formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order = formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order.getAsStringObject();
-
-      Object.keys(formattedReport[reportKey].orderExceptions.aboveMaxSecs).forEach(orderKey => {
-        formattedReport[reportKey].orderExceptions.aboveMaxSecs[orderKey] = formattedReport[reportKey].orderExceptions.aboveMaxSecs[orderKey].toString();
-      });
-
-      Object.keys(formattedReport[reportKey].awaitingReviewExceptions.orphanedLocked).forEach(orderKey => {
-        formattedReport[reportKey].awaitingReviewExceptions.orphanedLocked[orderKey] = formattedReport[reportKey].awaitingReviewExceptions.orphanedLocked[orderKey].toString();
-      });
-
-      Object.keys(formattedReport[reportKey].awaitingReviewExceptions.pastPostReviewTimestampOrders).forEach(orderKey => {
-        formattedReport[reportKey].awaitingReviewExceptions.pastPostReviewTimestampOrders[orderKey] = formattedReport[reportKey].awaitingReviewExceptions.pastPostReviewTimestampOrders[orderKey].toString();
-      });
-
     });
 
     return formattedReport;
@@ -127,8 +105,6 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         this.report[date].longestAwaitingPlusUnderReviewOrder.waitingSec = newTimeToApprove;
         this.report[date].longestAwaitingPlusUnderReviewOrder.order = order;
       }
-
-      this.recordOrderExceptions(order);
     }
   }
 
@@ -250,7 +226,6 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       this.report[orderDate].numOrdersByCustom.ATT_RMP1++;
   }
 
-
   /**
    * Initialzie a report object
    * @param key - string to indicate if report is for date (i.e. 03.17.2017) or 'totals'
@@ -266,23 +241,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
       longestInAwaitingReviewOrder: {waitingSec: 0, order: null},
       longestAwaitingPlusUnderReviewOrder: {waitingSec: 0, order: null},
-
-      orderExceptions: {aboveMaxSecs: []},
-      awaitingReviewExceptions: {pastPostReviewTimestampOrders: [], orphanedLocked: []}
     };
-  }
-
-  /**
-   * Record orders if time difference between the Waiting and Next Status (i.e. Open) is > order exception max seconds
-   */
-  protected recordOrderExceptions(order: Order): void {
-    // If awaiting review revision is missing and status is Killed, it means the order too a long time to review and we can disregard
-    if ((order.getRevision(OrderRevisionType.AWAITING_REVIEW) == null) && (order.getRevision(OrderRevisionType.POST_REVIEW).status == 'KILLED'))
-        return;
-
-    if (order.getRevisionTimeDiff(OrderRevisionType.AWAITING_REVIEW, OrderRevisionType.POST_REVIEW) > this.reportProperties.orderExceptionMaxSecs) {
-      this.report[order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW)].orderExceptions.aboveMaxSecs.push(order);
-    }
   }
 
   /**

@@ -2,7 +2,6 @@
  * Created by Tom on 2017-03-18.
  */
 import {OrderMarketHours, OrderExtendedTerms, OrderRevisionType} from "./Order";
-import Order from './Order';
 import OrderMonitor from './OrderMonitor';
 import OrderStream from './OrderStream';
 
@@ -36,12 +35,12 @@ var simulationCallback = function () {
  */
 function exportReports() {
   const json : any = orderMonitor.getReport();
-  writeJsonFile(exceptionReportJson, json.totals.orderExceptions).then(() => {});
+  //writeJsonFile(exceptionReportJson, json.totals.orderExceptions).then(() => {});
 
-  const csv : any = json2csv({data: json.totals.orderExceptions});
-  fs.writeFile(exceptionReportCsv, csv, function(err) {});
+  //const csv : any = json2csv({data: json.totals.orderExceptions});
+  //fs.writeFile(exceptionReportCsv, csv, function(err) {});
 
-  json.totals.orderExceptions = undefined;
+  //json.totals.orderExceptions = undefined;
   writeJsonFile(orderReportJson, json).then(() => {});
 }
 

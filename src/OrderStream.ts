@@ -3,11 +3,14 @@
  */
 import {OrderExtendedTerms, OrderRevisionType} from "./Order";
 import Order from './Order';
+import OrderExceptionReport from './OrderExceptionReport';
 
 const fastCsv = require("fast-csv");
 
 const inputOrdersFile = './resources/orders.csv';
 const inputLockedFile = './resources/locked.csv';
+
+const orderExceptionReport = new OrderExceptionReport();
 
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
@@ -21,15 +24,16 @@ export default class OrderStream {
   /**
    * @param callback function to call once all orders are loaded
    * @param includeLockedOrders set to false to not load locked revisions
+   * @param revisionExceptionCallback function to call if a locked revision cannot be added
    */
-  constructor(callback: any, includeLockedOrders: boolean = true) {
+  constructor(callback: any, includeLockedOrders: boolean = true, revisionExceptionCallback: any = undefined) {
     this.orders = {};
 
     this.loadWaitingOrders(() => {
       if (includeLockedOrders) {
         this.loadLockedOrders(() => {
           callback();
-        });
+        }, revisionExceptionCallback);
       } else
         callback();
     });
@@ -38,7 +42,7 @@ export default class OrderStream {
   /**
    * @param order
    */
-  protected addLockedRevision(csvOrder: any): void {
+  protected addLockedRevision(csvOrder: any, revisionExceptionCallback: any): void {
     const newOrder: Order = OrderStream.createOrderFromCSV(csvOrder);
     const newOrderID: string = newOrder.getUniqueID();
 
@@ -46,6 +50,7 @@ export default class OrderStream {
         (this.orders[newOrderID].addRevision(OrderRevisionType.UNDER_REVIEW, newOrder.extendedTerms[OrderRevisionType.UNDER_REVIEW])))
       delete this.orders[newOrderID]; // TODO: temp, remove this delete
     else {
+      revisionExceptionCallback(newOrder, this.orders[newOrderID]);
       console.log('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]);
       throw new Error('Cannot add revision ' + newOrderID + ' to order ' + this.orders[newOrderID]);
     }
@@ -61,6 +66,8 @@ export default class OrderStream {
       console.log('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
       throw new Error('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
     }
+    orderExceptionReport.recordOrderExceptions(newOrder);
+
     this.orders[newOrder.getUniqueID()]= newOrder;
   }
 
@@ -124,12 +131,12 @@ export default class OrderStream {
   /**
    * @param callback function to call once async load completes
    */
-  protected loadLockedOrders(callback: any) {
+  protected loadLockedOrders(callback: any, revisionExceptionCallback: any) {
     fastCsv
       .fromPath(inputLockedFile, {headers: true})
       .on('data', csvOrder => {
         try {
-          this.addLockedRevision(csvOrder);
+          this.addLockedRevision(csvOrder, revisionExceptionCallback);
         } catch (err) {}
       })
       .on('end', () => {
