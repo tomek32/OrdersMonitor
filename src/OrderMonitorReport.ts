@@ -18,8 +18,8 @@ export interface reportResource {
   longestInAwaitingReviewOrder: {waitingSec: number, order: Order};
   longestAwaitingPlusUnderReviewOrder: {waitingSec: number, order: Order}
 
-  orderExceptions: {aboveMaxSecs: Order[], orphanedLocked: Order[]};
-  awaitingReviewExceptions: {PastPostReviewTimestampOrders: Order[]};
+  orderExceptions: {aboveMaxSecs: Order[], };
+  awaitingReviewExceptions: {pastPostReviewTimestampOrders: Order[], orphanedLocked: Order[]};
 }
 
 export interface OrderMonitorReportInterface {
@@ -68,7 +68,7 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
 
     this.updateOverallTotalsReport();
 
-    Object.keys(formattedReport).forEach(key => {
+    Object.keys(formattedReport).forEach(reportKey => {
       // TODO: not supported yet
       /**
       if (!this.reportOrigNumOfStrategyOrders) {
@@ -83,8 +83,26 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
         formattedReport[key].numOrdersByStrategy.MLO /= 2;
       }*/
 
-      formattedReport[key].longestInAwaitingReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[key].longestInAwaitingReviewOrder.waitingSec);
-      formattedReport[key].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[key].longestAwaitingPlusUnderReviewOrder.waitingSec);
+      formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[reportKey].longestInAwaitingReviewOrder.waitingSec);
+      if (formattedReport[reportKey].longestInAwaitingReviewOrder.order)
+        formattedReport[reportKey].longestInAwaitingReviewOrder.order = formattedReport[reportKey].longestInAwaitingReviewOrder.order.toString();
+
+      formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec = OrderMonitorReport.getDateAsString(formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.waitingSec);
+      if (formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order)
+        formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order = formattedReport[reportKey].longestAwaitingPlusUnderReviewOrder.order.toString();
+
+      Object.keys(formattedReport[reportKey].orderExceptions.aboveMaxSecs).forEach(orderKey => {
+        formattedReport[reportKey].orderExceptions.aboveMaxSecs[orderKey] = formattedReport[reportKey].orderExceptions.aboveMaxSecs[orderKey].toString();
+      });
+
+      Object.keys(formattedReport[reportKey].awaitingReviewExceptions.orphanedLocked).forEach(orderKey => {
+        formattedReport[reportKey].awaitingReviewExceptions.orphanedLocked[orderKey] = formattedReport[reportKey].awaitingReviewExceptions.orphanedLocked[orderKey].toString();
+      });
+
+      Object.keys(formattedReport[reportKey].awaitingReviewExceptions.pastPostReviewTimestampOrders).forEach(orderKey => {
+        formattedReport[reportKey].awaitingReviewExceptions.pastPostReviewTimestampOrders[orderKey] = formattedReport[reportKey].awaitingReviewExceptions.pastPostReviewTimestampOrders[orderKey].toString();
+      });
+
     });
 
     return formattedReport;
@@ -249,8 +267,8 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
       longestInAwaitingReviewOrder: {waitingSec: 0, order: null},
       longestAwaitingPlusUnderReviewOrder: {waitingSec: 0, order: null},
 
-      orderExceptions: {aboveMaxSecs: [], orphanedLocked: []},
-      awaitingReviewExceptions: {PastPostReviewTimestampOrders: []}
+      orderExceptions: {aboveMaxSecs: []},
+      awaitingReviewExceptions: {pastPostReviewTimestampOrders: [], orphanedLocked: []}
     };
   }
 

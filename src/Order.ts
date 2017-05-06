@@ -60,7 +60,6 @@ export interface OrderExtendedTerms {
   status: string;
   strategyOrderType: string;
   timestamp: string;
-
 }
 
 export interface OrderInterface {
@@ -77,6 +76,7 @@ export interface OrderInterface {
   getRevisionDate(revision: OrderRevisionType): string;
   getRevisionTimeDiff(fromRevision: OrderRevisionType, toRevision: OrderRevisionType): number;
   getUniqueID(): string;
+  toString(): any;
 }
 
 const orderExceptionMaxSecs: number = 60 * 10;
@@ -223,6 +223,34 @@ export default class Order implements OrderInterface {
   }
 
   /**
+   * @returns {string} that uniquely indentifies the order
+   */
+  getUniqueID(): string {
+    return this.orderNumber + this.getRevisionDate(OrderRevisionType.CREATED);
+  }
+
+  /**
+   * @returns this object ready for printing (enums converted to strings)
+   */
+  toString(): any {
+    var order: any = this;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.CREATED)] = order.extendedTerms[OrderRevisionType.CREATED];
+    order.extendedTerms[OrderRevisionType.CREATED] = undefined;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.AWAITING_REVIEW)] = order.extendedTerms[OrderRevisionType.AWAITING_REVIEW];
+    order.extendedTerms[OrderRevisionType.AWAITING_REVIEW] = undefined;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.UNDER_REVIEW)] = order.extendedTerms[OrderRevisionType.UNDER_REVIEW];
+    order.extendedTerms[OrderRevisionType.UNDER_REVIEW] = undefined;
+
+    order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.POST_REVIEW)] = order.extendedTerms[OrderRevisionType.POST_REVIEW];
+    order.extendedTerms[OrderRevisionType.POST_REVIEW] = undefined;
+
+    return order;
+  }
+
+  /**
    * @param revision
    * @returns {string} representation of revision
    */
@@ -254,13 +282,5 @@ export default class Order implements OrderInterface {
       default:
         return OrderRevisionType.POST_REVIEW;
     }
-  }
-
-  /**
-   *
-   * @returns {string} that uniquely indentifies the order
-   */
-  getUniqueID(): string {
-    return this.orderNumber + this.getRevisionDate(OrderRevisionType.CREATED);
   }
 }
