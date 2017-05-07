@@ -10,9 +10,10 @@ const fs = require('fs');
 const json2csv = require('json2csv');
 const writeJsonFile = require('write-json-file');
 
-const orderReportJson = './output/orders_report.json';
-const exceptionReportJson = './output/order_exceptions.json';
-const exceptionReportCsv = './output/order_exceptions.csv';
+const orderReportJson: string = './output/orders_report.json';
+const orderReportCsv: string  = './output/orders_report.csv';
+const exceptionReportJson: string  = './output/order_exceptions.json';
+const exceptionReportCsv: string  = './output/order_exceptions.csv';
 
 const orderExceptionMaxSecs: number = 60 * 10;
 
@@ -32,12 +33,20 @@ let simulationCallback = function () {
  * Export order monitor reports
  */
 function exportReports() {
-  const json : any = orderMonitor.getReport();
+  let json: any, csv: any;
+
+  // Export monitor report
+  json = orderMonitor.getReport();
+  csv = json2csv({data: json});
+
   writeJsonFile(orderReportJson, json).then(() => {});
+  fs.writeFile(orderReportCsv, csv, function(err) {});
 
-  writeJsonFile(exceptionReportJson, orderStream.getOrderExceptions()).then(() => {});
+  // Export order exceptions
+  json = orderStream.getOrderExceptions();
+  csv = json2csv({data: json});
 
-  const csv : any = json2csv({data: orderStream.getOrderExceptions()});
+  writeJsonFile(exceptionReportJson, json).then(() => {});
   fs.writeFile(exceptionReportCsv, csv, function(err) {});
 }
 
