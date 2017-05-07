@@ -7,8 +7,8 @@ import OrderExceptionReport from './OrderExceptionReport';
 
 const fastCsv = require("fast-csv");
 
-const inputOrdersFile = './resources/orders.csv';
-const inputLockedFile = './resources/locked.csv';
+const inputOrdersFile = './resources/orders_sample.csv';
+const inputLockedFile = './resources/locked_sample.csv';
 
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
