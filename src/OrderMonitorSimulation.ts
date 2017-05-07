@@ -1,7 +1,7 @@
 /**
  * Created by Tom on 2017-03-18.
  */
-import {OrderMarketHours, OrderExtendedTerms, OrderRevisionType} from "./Order";
+import {OrderMarketHours} from "./Order";
 import OrderMonitor from './OrderMonitor';
 import OrderStream from './OrderStream';
 
@@ -15,14 +15,12 @@ const exceptionReportJson = './output/order_exceptions.json';
 const exceptionReportCsv = './output/order_exceptions.csv';
 
 const orderExceptionMaxSecs: number = 60 * 10;
-const orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
-
 
 /**
  * Run simulation by pushing all orders onto queue and then empty the entire queue
  */
-var simulationCallback = function () {
-  Object.keys(orderStream.orders).forEach(key => {
+let simulationCallback = function () {
+  Object.keys(orderStream.getOrders()).forEach(key => {
     orderMonitor.pushOrder(orderStream.orders[key]);
   });
 
@@ -35,14 +33,13 @@ var simulationCallback = function () {
  */
 function exportReports() {
   const json : any = orderMonitor.getReport();
-  //writeJsonFile(exceptionReportJson, json.totals.orderExceptions).then(() => {});
-
-  //const csv : any = json2csv({data: json.totals.orderExceptions});
-  //fs.writeFile(exceptionReportCsv, csv, function(err) {});
-
-  //json.totals.orderExceptions = undefined;
   writeJsonFile(orderReportJson, json).then(() => {});
+
+  writeJsonFile(exceptionReportJson, orderStream.getOrderExceptions()).then(() => {});
+
+  const csv : any = json2csv({data: orderStream.getOrderExceptions()});
+  fs.writeFile(exceptionReportCsv, csv, function(err) {});
 }
 
-/** NOTE: Production locked orders input file has too many false positives to reliably report on */
-const orderStream: OrderStream = new OrderStream(simulationCallback, true);
+let orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
+let orderStream: OrderStream = new OrderStream(simulationCallback, true);

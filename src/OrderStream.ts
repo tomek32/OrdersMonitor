@@ -10,8 +10,6 @@ const fastCsv = require("fast-csv");
 const inputOrdersFile = './resources/orders.csv';
 const inputLockedFile = './resources/locked.csv';
 
-const orderExceptionReport = new OrderExceptionReport();
-
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
 }
@@ -20,6 +18,7 @@ export interface OrderStreamInterface {
 
 export default class OrderStream {
   orders: { [key: string]: Order };
+  orderExceptionReport: OrderExceptionReport;
 
   /**
    * @param callback function to call once all orders are loaded
@@ -28,6 +27,7 @@ export default class OrderStream {
    */
   constructor(callback: any, includeLockedOrders: boolean = true, revisionExceptionCallback: any = undefined) {
     this.orders = {};
+    this.orderExceptionReport = new OrderExceptionReport();
 
     this.loadWaitingOrders(() => {
       if (includeLockedOrders) {
@@ -37,6 +37,20 @@ export default class OrderStream {
       } else
         callback();
     });
+  }
+
+  /**
+   * @return {{[p: string]: Order}} object with array of orders for each day
+   */
+  getOrders(): {[key: string]: Order} {
+    return this.orders;
+  }
+
+  /**
+   *
+   */
+  getOrderExceptions(): any {
+    return this.orderExceptionReport;
   }
 
   /**
@@ -66,7 +80,7 @@ export default class OrderStream {
       console.log('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
       throw new Error('Duplicate order. Cannot create order: ' + newOrder.getUniqueID());
     }
-    orderExceptionReport.recordOrderExceptions(newOrder);
+    this.orderExceptionReport.recordOrderExceptions(newOrder);
 
     this.orders[newOrder.getUniqueID()]= newOrder;
   }
