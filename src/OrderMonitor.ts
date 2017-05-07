@@ -8,11 +8,9 @@ import OrderMonitorReport from './OrderMonitorReport';
 const FastPriorityQueue: any = require('fastpriorityqueue');
 
 export interface OrderMonitorInterface {
-  //lockedOrders: {[key: string]: any};
   orderQueue: any;
   report: OrderMonitorReport;
 
-  //addLockedRevision(order: any): void;
   getReport(): any;
   pushOrder(order: Order): void;
   popOrder(): void;
@@ -32,10 +30,9 @@ export default class OrderMonitor implements OrderMonitorInterface {
    * @param orderExceptionMaxSecs
    * @param otherChannelMaxWaitSec
    */
-  constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: OrderMarketHours, orderExceptionMaxSecs?: number) {
-    //this.lockedOrders = {};
+  constructor(otherChannelMaxWaitSec: number = 30, includeMarketHours?: OrderMarketHours) {
     this.orderQueue = new FastPriorityQueue();
-    this.report = new OrderMonitorReport(includeMarketHours, orderExceptionMaxSecs);
+    this.report = new OrderMonitorReport(includeMarketHours);
 
     // TODO: this value isn't being used yet
     this.otherChannelMaxWaitSec = otherChannelMaxWaitSec;
@@ -46,16 +43,6 @@ export default class OrderMonitor implements OrderMonitorInterface {
    */
   getReport(): any {
     return this.report.getReport();
-  }
-
-  /**
-   * Pushes order onto queue
-   * @param order
-   */
-  pushOrder(order: Order): void {
-    //var flag: boolean = this.findAndAssignLockedStatus(newOrder);
-    this.orderQueue.add(order);
-    this.report.recordPushOrder(order);
   }
 
   /**
@@ -73,5 +60,15 @@ export default class OrderMonitor implements OrderMonitorInterface {
     }
     else
       return false;
+  }
+
+  /**
+   * Pushes order onto queue
+   * @param order
+   */
+  pushOrder(order: Order): void {
+    //var flag: boolean = this.findAndAssignLockedStatus(newOrder);
+    this.orderQueue.add(order);
+    this.report.recordPushOrder(order);
   }
 }
