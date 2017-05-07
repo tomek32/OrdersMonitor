@@ -37,9 +37,14 @@
 		"numOrdersByCustom": {
 			"ATT_RMP1": 0
 		},
-		"longestWaitingPlusApprovedOrder": null,
-		"orderExceptions": {},
-		"longestWaitingPlusApproved": "19h:00m:00s"
+		"longestInAwaitingReviewOrder": {
+			"waitingSec": "aNh:aNm:aNs",
+			"order": null
+		},
+		"longestAwaitingPlusUnderReviewOrder": {
+			"waitingSec": "aNh:aNm:aNs",
+			"order": null
+		}
 	},
 	"03.03.2017": {
 		"numOrders": 10,
@@ -79,9 +84,14 @@
 		"numOrdersByCustom": {
 			"ATT_RMP1": 1
 		},
-		"longestWaitingPlusApprovedOrder": null,
-		"orderExceptions": {},
-		"longestWaitingPlusApproved": "19h:00m:00s"
+		"longestInAwaitingReviewOrder": {
+			"waitingSec": "aNh:aNm:aNs",
+			"order": null
+		},
+		"longestAwaitingPlusUnderReviewOrder": {
+			"waitingSec": "aNh:aNm:aNs",
+			"order": null
+		}
 	},
 	"totals": {
 		"numOrders": 20,
@@ -121,8 +131,13 @@
 		"numOrdersByCustom": {
 			"ATT_RMP1": 1
 		},
-		"numOrderPastMaxSecs": 0,
-		"numOrphasedLockedOrders": 0,
-		"longestWaitingPlusApproved": "19h:00m:00s"
+		"longestInAwaitingReviewOrder": {
+			"waitingSec": "19h:00m:00s",
+			"order": null
+		},
+		"longestAwaitingPlusUnderReviewOrder": {
+			"waitingSec": "19h:00m:00s",
+			"order": null
+		}
 	}
 }
