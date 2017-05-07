@@ -92,7 +92,7 @@ function getExportOrdersReport(): any {
       dateReport[orderTypeKey] = report[dateKey].numOrdersByOrderType[orderTypeKey];
     });
 
-    dateReport.ATT_RMP1 = report[dateKey].ATT_RMP1;
+    dateReport.ATT_RMP1 = report[dateKey].numOrdersByCustom.ATT_RMP1;
 
     if (dateKey == 'totals')
       dateReport['Date'] = 'Totals';
