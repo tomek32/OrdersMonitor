@@ -247,7 +247,7 @@ export default class Order implements OrderInterface {
    * @returns {string} that uniquely indentifies the order
    */
   getUniqueID(): string {
-    return this.orderNumber + this.getRevisionDate(OrderRevisionType.CREATED);
+    return this.orderNumber + "_" + this.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);
   }
 
   /**
