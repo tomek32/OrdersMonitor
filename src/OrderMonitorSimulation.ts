@@ -55,44 +55,46 @@ function getExportOrdersReport(): any {
 
   // Export monitor report
   report = orderMonitor.getReport();
-  fields = ['Date',
-    'All',
-    'WEB', 'WBR', 'ATT', 'MBL', 'TMAX', 'TALK', 'TBL', 'UNKNOWN',
-    'RMPA', 'RMP1', 'RMP2', 'RMP3', 'RMP4', 'RM',
-    'SPL', 'OCO', 'OTA', 'FTO', 'MLO',
-    'MARKET', 'LIMIT', 'STOP_MARKET', 'STOP_LIMIT', 'TRAILING_STOP_MARKET', 'TRAILING_STOP_LIMIT',
-    'ATT_RMP1'];
-  fieldNames = ['Date',
-    'All Channels',
-    'WebBroker Legacy', 'WebBroker', 'Advanced Dashboard', 'Mobile', 'Telemax', 'TalkBroker', 'Tablet', 'Unknown',
-    'RMPA', 'RMP1', 'RMP2', 'RMP3', 'RMP4', 'RM**',
-    'Simple', 'OCO', 'OTA', 'FTO', 'Multi-Leg',
-    'Market', 'Limit', 'Stop Market', 'Stop Limit', 'Trailing Stop Market', 'Trailing Stop Limit',
-    'AD + RMP1'];
+  fields = ['Date', 'All', '_1_',
+            'WEB', 'WBR', 'ATT', 'MBL', 'TMAX', 'TALK', 'TBL', 'UNKNOWN', '_2_',
+            'ATT_RMP1', '_3_',
+            'RMPA', 'RMP1', 'RMP2', 'RMP3', 'RMP4', 'RM', '_4_',
+            'SPL', 'OCO', 'OTA', 'FTO', 'MLO', '_5_',
+            'MARKET', 'LIMIT', 'STOP_MARKET', 'STOP_LIMIT', 'TRAILING_STOP_MARKET', 'TRAILING_STOP_LIMIT'];
+  fieldNames = ['Date', 'All Channels', '',
+                'WebBroker Legacy', 'WebBroker', 'Advanced Dashboard', 'Mobile', 'Telemax', 'TalkBroker', 'Tablet', 'Unknown', '',
+                'AD + RMP1', '',
+                'RMPA', 'RMP1', 'RMP2', 'RMP3', 'RMP4', 'RM**', '',
+                'Simple', 'OCO', 'OTA', 'FTO', 'Multi-Leg', '',
+                'Market', 'Limit', 'Stop Market', 'Stop Limit', 'Trailing Stop Market', 'Trailing Stop Limit'];
 
   json = [];
   Object.keys(report).forEach(dateKey => {
     dateReport = {};
     dateReport.Date = dateKey;
     dateReport.All = report[dateKey].numOrders;
+    dateReport._1_ = '';
 
     Object.keys(report[dateKey].numOrdersByChannel).forEach(channelKey => {
       dateReport[channelKey] = report[dateKey].numOrdersByChannel[channelKey];
     });
+    dateReport._2_ = '';
+
+    dateReport.ATT_RMP1 = report[dateKey].numOrdersByCustom.ATT_RMP1;
+    dateReport._3_ = '';
+
     Object.keys(report[dateKey].numOrdersByRRCode).forEach(rrCodeKey => {
       dateReport[rrCodeKey] = report[dateKey].numOrdersByRRCode[rrCodeKey];
     });
-    Object.keys(report[dateKey].numOrdersByChannel).forEach(channelKey => {
-      dateReport[channelKey] = report[dateKey].numOrdersByChannel[channelKey];
-    });
+    dateReport._4_ = '';
+
     Object.keys(report[dateKey].numOrdersByStrategy).forEach(strategyKey => {
       dateReport[strategyKey] = report[dateKey].numOrdersByStrategy[strategyKey];
     });
+    dateReport._5_ = '';
     Object.keys(report[dateKey].numOrdersByOrderType).forEach(orderTypeKey => {
       dateReport[orderTypeKey] = report[dateKey].numOrdersByOrderType[orderTypeKey];
     });
-
-    dateReport.ATT_RMP1 = report[dateKey].numOrdersByCustom.ATT_RMP1;
 
     if (dateKey == 'totals')
       dateReport['Date'] = 'Totals';
