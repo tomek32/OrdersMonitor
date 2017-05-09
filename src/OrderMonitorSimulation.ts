@@ -10,10 +10,10 @@ const fs = require('fs');
 const json2csv = require('json2csv');
 const writeJsonFile = require('write-json-file');
 
-const orderReportJsonFile: string = './output/orders_report.json';
-const orderReportCsvFile: string  = './output/orders_report.csv';
-const exceptionReportJsonFile: string  = './output/order_exceptions.json';
-const exceptionReportCsvFile: string  = './output/order_exceptions.csv';
+const orderReportJsonFile: string = './output/orders_report_sample.json';
+const orderReportCsvFile: string  = './output/orders_report_sample.csv';
+const exceptionReportJsonFile: string  = './output/order_exceptions_sample.json';
+const exceptionReportCsvFile: string  = './output/order_exceptions_sample.csv';
 
 const orderExceptionMaxSecs: number = 60 * 10;
 
