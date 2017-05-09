@@ -134,10 +134,10 @@ export default class Order implements OrderInterface {
       return false;
 
     if (revision == OrderRevisionType.UNDER_REVIEW) {
-      const waitingTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
-      const lockedTimestamp: string = extendedTerms.timestamp;
-      const postReviewTimestamp: string = this.getRevision((OrderRevisionType.POST_REVIEW)).timestamp;
-      var timeDiff: number = 0;
+      let waitingTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
+      let lockedTimestamp: string = extendedTerms.timestamp;
+      let postReviewTimestamp: string = this.getRevision((OrderRevisionType.POST_REVIEW)).timestamp;
+      let timeDiff: number;
 
       timeDiff = (new Date(lockedTimestamp).getTime() - new Date(postReviewTimestamp).getTime()) / 1000;
       if (timeDiff => 0) {
@@ -160,7 +160,7 @@ export default class Order implements OrderInterface {
    * @returns this object ready for printing (enums converted to strings)
    */
   getAsStringObject(): any {
-    var order: any = this;
+    let order: any = this;
 
     order.extendedTerms[Order.getRevisionTypeAsString(OrderRevisionType.CREATED)] = order.extendedTerms[OrderRevisionType.CREATED];
     order.extendedTerms[OrderRevisionType.CREATED] = undefined;
@@ -183,11 +183,11 @@ export default class Order implements OrderInterface {
    * @return {string} channel of revision in the format of CH.*
    */
   getChannelFromTrailer(revision: OrderRevisionType): string {
-    const i: number = this.trailer2txt.indexOf('CH.');
+    let i: number = this.trailer2txt.indexOf('CH.');
     if (i == -1)
       return 'UNKNOWN';
 
-    var j: number = this.trailer2txt.indexOf('/', i);
+    let j: number = this.trailer2txt.indexOf('/', i);
     if (j == -1)
       j = this.trailer2txt.length;
 
@@ -198,7 +198,7 @@ export default class Order implements OrderInterface {
    * @returns {OrderMarketHours} if market hours were open or closed for waiting revision. Doesn't account for holidays
    */
   getOrderMarketHoursType(): OrderMarketHours {
-    const d: Date = new Date(this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp);
+    let d: Date = new Date(this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp);
 
     if (d.getHours() < 9 || d.getHours() >= 16)
       return OrderMarketHours.MARKETS_CLOSED;
@@ -226,7 +226,7 @@ export default class Order implements OrderInterface {
     if (!(revision in this.extendedTerms))
       return null;
 
-    var d: Date = new Date(this.extendedTerms[revision].timestamp);
+    let d: Date = new Date(this.extendedTerms[revision].timestamp);
     return (('0' + (d.getMonth() + 1).toString()).slice(-2) + '.' + ('0' + d.getDate()).slice(-2) + '.' + d.getFullYear());
   }
 
@@ -237,8 +237,8 @@ export default class Order implements OrderInterface {
    * @returns {number} of seconds between the final and initial timestamp
    */
   getRevisionTimeDiff(fromRevision: OrderRevisionType, toRevision: OrderRevisionType): number {
-    const fromTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
-    const toTimestamp: string = this.getRevision(OrderRevisionType.POST_REVIEW).timestamp;
+    let fromTimestamp: string = this.getRevision(OrderRevisionType.AWAITING_REVIEW).timestamp;
+    let toTimestamp: string = this.getRevision(OrderRevisionType.POST_REVIEW).timestamp;
 
     return (new Date(toTimestamp).getTime() - new Date(fromTimestamp).getTime()) / 1000;
   }
@@ -247,7 +247,7 @@ export default class Order implements OrderInterface {
    * @returns {string} that uniquely indentifies the order
    */
   getUniqueID(): string {
-    return this.orderNumber + this.getRevisionDate(OrderRevisionType.CREATED);
+    return this.orderNumber + '_' + this.getRevision(OrderRevisionType.CREATED).timestamp;
   }
 
   /**
