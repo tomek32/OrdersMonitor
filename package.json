@@ -6,6 +6,7 @@
   "author": "Tom Hosiawa",
   "license": "MIT",
   "devDependencies": {
+    "config": "^1.26.1",
     "fastpriorityqueue": "^0.2.3",
     "fast-csv": "^2.4.0",
     "json2csv": "^3.7.3",

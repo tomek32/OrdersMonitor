@@ -1,0 +1,20 @@
+{
+  "OrdersMonitor": {
+    "InputFile": {
+      "includeLockedOrders": "true",
+      "ordersFile": "./resources/orders_sample.csv",
+      "lockedFile": "./resources/locked_sample.csv"
+    },
+
+    "OrderReport": {
+      "jsonFile": "./output/orders_report_sample.json",
+      "csvFile": "./output/orders_report_sample.csv"
+    },
+
+    "OrderExceptions": {
+      "maxSecs:": "600",
+      "jsonFile": "./output/order_exceptions_sample.json",
+      "csvFile": "./output/order_exceptions_sample.csv"
+    }
+  }
+}

@@ -6,16 +6,21 @@ import OrderMonitor from './OrderMonitor';
 import OrderStream from './OrderStream';
 
 
+const config = require('config');
 const fs = require('fs');
 const json2csv = require('json2csv');
 const writeJsonFile = require('write-json-file');
 
-const orderReportJsonFile: string = './output/orders_report_sample.json';
-const orderReportCsvFile: string  = './output/orders_report_sample.csv';
-const exceptionReportJsonFile: string  = './output/order_exceptions_sample.json';
-const exceptionReportCsvFile: string  = './output/order_exceptions_sample.csv';
 
-const orderExceptionMaxSecs: number = 60 * 10;
+const includeLockedOrders: boolean = config.get('OrdersMonitor.InputFile.includeLockedOrders');
+
+const orderReportJsonFile: string =  config.get('OrdersMonitor.OrderReport.jsonFile');
+const orderReportCsvFile: string  =  config.get('OrdersMonitor.OrderReport.csvFile');
+
+const orderExceptionMaxSecs: number =    config.get('OrdersMonitor.OrderExceptions.maxSecs');
+const exceptionReportJsonFile: string  = config.get('OrdersMonitor.OrderExceptions.jsonFile');
+const exceptionReportCsvFile: string  =  config.get('OrdersMonitor.OrderExceptions.csvFile');
+
 
 /**
  * Run simulation by pushing all orders onto queue and then empty the entire queue
@@ -106,4 +111,4 @@ function getExportOrdersReport(): any {
 }
 
 let orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
-let orderStream: OrderStream = new OrderStream(simulationCallback, true);
+let orderStream: OrderStream = new OrderStream(simulationCallback, includeLockedOrders);

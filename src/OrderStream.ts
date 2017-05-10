@@ -5,10 +5,11 @@ import {OrderExtendedTerms, OrderRevisionType} from "./Order";
 import Order from './Order';
 import OrderExceptionReport from './OrderExceptionReport';
 
-const fastCsv = require("fast-csv");
+const config = require('config');
+const fastCsv = require('fast-csv');
 
-const inputOrdersFile = './resources/orders_sample.csv';
-const inputLockedFile = './resources/locked_sample.csv';
+const inputOrdersFile = config.get('OrdersMonitor.InputFile.OrdersFile');
+const inputLockedFile = config.get('OrdersMonitor.InputFile.LockedFile');
 
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
