@@ -8,9 +8,6 @@ import OrderExceptionReport from './OrderExceptionReport';
 const config = require('config');
 const fastCsv = require('fast-csv');
 
-const inputOrdersFile = config.get('OrdersMonitor.InputFile.OrdersFile');
-const inputLockedFile = config.get('OrdersMonitor.InputFile.LockedFile');
-
 export interface OrderStreamInterface {
   orders: {[key: string]: Order};
 }
@@ -148,7 +145,7 @@ export default class OrderStream {
    */
   protected loadLockedOrders(callback: any, revisionExceptionCallback: any) {
     fastCsv
-      .fromPath(inputLockedFile, {headers: true})
+      .fromPath(configParms.inputLockedFile, {headers: true})
       .on('data', csvOrder => {
         try {
           this.addLockedRevision(csvOrder, revisionExceptionCallback);
@@ -164,7 +161,7 @@ export default class OrderStream {
    */
   protected loadWaitingOrders(callback: any) {
     fastCsv
-      .fromPath(inputOrdersFile, {headers: true})
+      .fromPath(configParms.inputOrdersFile, {headers: true})
       .on('data', csvOrder => {
         try {
           this.createOrder(csvOrder);
@@ -175,3 +172,14 @@ export default class OrderStream {
       });
   }
 }
+
+/**
+ * Load the config parameters
+ */
+function loadConfig(): void {
+  configParms.inputOrdersFile = config.get('OrdersMonitor.InputFile.ordersFile');
+  configParms.inputLockedFile = config.get('OrdersMonitor.InputFile.lockedFile');
+}
+
+let configParms: any = {};
+loadConfig();

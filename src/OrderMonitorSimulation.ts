@@ -12,28 +12,6 @@ const json2csv = require('json2csv');
 const writeJsonFile = require('write-json-file');
 
 
-const includeLockedOrders: boolean = config.get('OrdersMonitor.InputFile.includeLockedOrders');
-
-const orderReportJsonFile: string =  config.get('OrdersMonitor.OrderReport.jsonFile');
-const orderReportCsvFile: string  =  config.get('OrdersMonitor.OrderReport.csvFile');
-
-const orderExceptionMaxSecs: number =    config.get('OrdersMonitor.OrderExceptions.maxSecs');
-const exceptionReportJsonFile: string  = config.get('OrdersMonitor.OrderExceptions.jsonFile');
-const exceptionReportCsvFile: string  =  config.get('OrdersMonitor.OrderExceptions.csvFile');
-
-
-/**
- * Run simulation by pushing all orders onto queue and then empty the entire queue
- */
-let simulationCallback = function () {
-  Object.keys(orderStream.getOrders()).forEach(key => {
-    orderMonitor.pushOrder(orderStream.orders[key]);
-  });
-
-  while (orderMonitor.popOrder()) {}
-  exportReports();
-};
-
 /**
  * Export order monitor reports
  */
@@ -41,13 +19,13 @@ function exportReports() {
   let json: any, csv: any;
 
   // Export orders report
-  writeJsonFile(orderReportJsonFile, orderMonitor.getReport()).then(() => {});
+  writeJsonFile(configParms.orderReportJsonFile, orderMonitor.getReport()).then(() => {});
 
   csv = json2csv(getExportOrdersReport());
-  fs.writeFile(orderReportCsvFile, csv, function(err) {});
+  fs.writeFile(configParms.orderReportCsvFile, csv, function(err) {});
 
   // Export order exceptions
-  writeJsonFile(exceptionReportJsonFile, orderStream.getOrderExceptions()).then(() => {});
+  writeJsonFile(configParms.exceptionReportJsonFile, orderStream.getOrderExceptions()).then(() => {});
 
   //TODO: add export of order exceptions
   //csv = json2csv({data: json});
@@ -110,5 +88,34 @@ function getExportOrdersReport(): any {
   return {data: json, fields: fields, fieldNames: fieldNames};
 }
 
-let orderMonitor = new OrderMonitor(orderExceptionMaxSecs, OrderMarketHours.ALL);
-let orderStream: OrderStream = new OrderStream(simulationCallback, includeLockedOrders);
+/**
+ * Load the config parameters
+ */
+function loadConfig(): void {
+  configParms.includeLockedOrders = config.get('OrdersMonitor.InputFile.includeLockedOrders');
+
+  configParms.includeMarketHours = config.get('OrdersMonitor.OrderReport.includeMarketHours');
+  configParms.orderReportJsonFile = config.get('OrdersMonitor.OrderReport.jsonFile');
+  configParms.orderReportCsvFile = config.get('OrdersMonitor.OrderReport.csvFile');
+
+  configParms.orderExceptionMaxSecs = config.get('OrdersMonitor.OrderExceptions.maxSecs');
+  configParms.exceptionReportJsonFile = config.get('OrdersMonitor.OrderExceptions.jsonFile');
+  configParms.exceptionReportCsvFile = config.get('OrdersMonitor.OrderExceptions.csvFile');
+}
+
+/**
+ * Run simulation by pushing all orders onto queue and then empty the entire queue
+ */
+let simulationCallback = function () {
+  Object.keys(orderStream.getOrders()).forEach(key => {
+    orderMonitor.pushOrder(orderStream.orders[key]);
+  });
+
+  while (orderMonitor.popOrder()) {}
+  exportReports();
+};
+
+let configParms: any = {};
+loadConfig();
+let orderMonitor = new OrderMonitor(configParms.orderExceptionMaxSecs, configParms.includeMarketHours);
+let orderStream: OrderStream = new OrderStream(simulationCallback, configParms.includeLockedOrders);
