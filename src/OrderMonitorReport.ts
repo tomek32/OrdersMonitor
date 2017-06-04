@@ -113,7 +113,9 @@ export default class OrderMonitorReport implements OrderMonitorReportInterface {
    * @param order
    */
   recordPushOrder(order: Order): void {
-    if (this.reportProperties.includeMarketHours != OrderMarketHours.ALL && this.reportProperties.includeMarketHours != order.getOrderMarketHoursType())
+    var a = OrderMarketHours.ALL;
+    if (this.reportProperties.includeMarketHours != OrderMarketHours.ALL &&
+        this.reportProperties.includeMarketHours != order.getOrderMarketHoursType())
       return;
 
     const orderDate:string = order.getRevisionDate(OrderRevisionType.AWAITING_REVIEW);

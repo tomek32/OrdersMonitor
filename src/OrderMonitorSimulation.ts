@@ -102,7 +102,22 @@ function loadConfig(): void {
     default:
   }
 
-  configParms.includeMarketHours = config.get('OrdersMonitor.OrderReport.includeMarketHours');
+  switch (config.get('OrdersMonitor.OrderReport.includeMarketHours')) {
+    case 'OrderMarketHours.ALL':
+      configParms.includeMarketHours = OrderMarketHours.ALL;
+      break;
+    case 'OrderMarketHours.MARKETS_OPEN':
+      configParms.includeMarketHours = OrderMarketHours.MARKETS_OPEN;
+      break;
+    case 'OrderMarketHours.MARKETS_CLOSED':
+      configParms.includeMarketHours = OrderMarketHours.MARKETS_CLOSED;
+      break;
+    case 'OrderMarketHours.EXTENDED_MARKETS':
+      configParms.includeMarketHours = OrderMarketHours.EXTENDED_MARKETS;
+      break;
+    default:
+  }
+
   configParms.orderReportJsonFile = config.get('OrdersMonitor.OrderReport.jsonFile');
   configParms.orderReportCsvFile = config.get('OrdersMonitor.OrderReport.csvFile');
 
