@@ -92,7 +92,15 @@ function getExportOrdersReport(): any {
  * Load the config parameters
  */
 function loadConfig(): void {
-  configParms.includeLockedOrders = config.get('OrdersMonitor.InputFile.includeLockedOrders');
+  switch (config.get('OrdersMonitor.InputFile.includeLockedOrders')) {
+    case 'true':
+      configParms.includeLockedOrders = true;
+      break;
+    case 'false':
+      configParms.includeLockedOrders = false;
+      break;
+    default:
+  }
 
   configParms.includeMarketHours = config.get('OrdersMonitor.OrderReport.includeMarketHours');
   configParms.orderReportJsonFile = config.get('OrdersMonitor.OrderReport.jsonFile');
